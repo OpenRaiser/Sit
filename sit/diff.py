@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import json
 from pathlib import Path
 from typing import Any
 
@@ -170,10 +171,23 @@ def _diff_schema_group(result: PackageDiff, old_paths: dict[str, Path], new_path
             continue
 
         result.add(f"SCHEMA changed {name}: {old_path.name} -> {new_path.name}", changed=True)
-        _diff_schema_node(result, name, old_schema, new_schema, path="")
+        _diff_schema_node(result, name, old_schema, new_schema, path="", old_root=old_schema, new_root=new_schema)
 
 
-def _diff_schema_node(result: PackageDiff, name: str, old_schema: Any, new_schema: Any, *, path: str) -> None:
+def _diff_schema_node(
+    result: PackageDiff,
+    name: str,
+    old_schema: Any,
+    new_schema: Any,
+    *,
+    path: str,
+    old_root: Any,
+    new_root: Any,
+) -> None:
+    if not isinstance(old_schema, dict) or not isinstance(new_schema, dict):
+        return
+
+    old_schema, new_schema = _diff_and_resolve_refs(result, name, old_schema, new_schema, path=path, old_root=old_root, new_root=new_root)
     if not isinstance(old_schema, dict) or not isinstance(new_schema, dict):
         return
 
@@ -181,11 +195,21 @@ def _diff_schema_node(result: PackageDiff, name: str, old_schema: Any, new_schem
     _diff_schema_enum(result, name, old_schema, new_schema, path=path)
     _diff_schema_additional_properties(result, name, old_schema, new_schema, path=path)
     _diff_schema_bounds(result, name, old_schema, new_schema, path=path)
-    _diff_schema_items(result, name, old_schema, new_schema, path=path)
-    _diff_schema_properties(result, name, old_schema, new_schema, path=path)
+    _diff_schema_combinators(result, name, old_schema, new_schema, path=path, old_root=old_root, new_root=new_root)
+    _diff_schema_items(result, name, old_schema, new_schema, path=path, old_root=old_root, new_root=new_root)
+    _diff_schema_properties(result, name, old_schema, new_schema, path=path, old_root=old_root, new_root=new_root)
 
 
-def _diff_schema_properties(result: PackageDiff, name: str, old_schema: dict[str, Any], new_schema: dict[str, Any], *, path: str) -> None:
+def _diff_schema_properties(
+    result: PackageDiff,
+    name: str,
+    old_schema: dict[str, Any],
+    new_schema: dict[str, Any],
+    *,
+    path: str,
+    old_root: Any,
+    new_root: Any,
+) -> None:
     old_properties = _schema_properties(old_schema)
     new_properties = _schema_properties(new_schema)
     old_required = _schema_required(old_schema)
@@ -204,7 +228,7 @@ def _diff_schema_properties(result: PackageDiff, name: str, old_schema: dict[str
 
     for field in sorted(old_property_names & new_property_names):
         field_path = _join_schema_path(path, field)
-        _diff_schema_node(result, name, old_properties[field], new_properties[field], path=field_path)
+        _diff_schema_node(result, name, old_properties[field], new_properties[field], path=field_path, old_root=old_root, new_root=new_root)
 
     for field in sorted(new_required - old_required):
         if field in old_properties:
@@ -326,7 +350,83 @@ def _diff_upper_bound(
     result.add(f"SCHEMA {name} constraint changed {label}.{key}: {_short(old_value)} -> {_short(new_value)}", changed=True, breaking=breaking)
 
 
-def _diff_schema_items(result: PackageDiff, name: str, old_schema: dict[str, Any], new_schema: dict[str, Any], *, path: str) -> None:
+def _diff_schema_combinators(
+    result: PackageDiff,
+    name: str,
+    old_schema: dict[str, Any],
+    new_schema: dict[str, Any],
+    *,
+    path: str,
+    old_root: Any,
+    new_root: Any,
+) -> None:
+    for key in ("oneOf", "allOf"):
+        _diff_schema_combinator(result, name, old_schema, new_schema, key, path=path, old_root=old_root, new_root=new_root)
+
+
+def _diff_schema_combinator(
+    result: PackageDiff,
+    name: str,
+    old_schema: dict[str, Any],
+    new_schema: dict[str, Any],
+    key: str,
+    *,
+    path: str,
+    old_root: Any,
+    new_root: Any,
+) -> None:
+    old_branches = old_schema.get(key)
+    new_branches = new_schema.get(key)
+    if old_branches is None and new_branches is None:
+        return
+
+    label = _schema_label(path)
+    old_valid = isinstance(old_branches, list)
+    new_valid = isinstance(new_branches, list)
+    if old_branches is None:
+        result.add(f"SCHEMA {name} {key} added {label} ({len(new_branches) if new_valid else 'invalid'} branches)", changed=True, breaking=key == "allOf")
+        return
+    if new_branches is None:
+        result.add(f"SCHEMA {name} {key} removed {label}", changed=True, breaking=key == "oneOf")
+        return
+    if not old_valid or not new_valid:
+        result.add(f"SCHEMA {name} {key} changed {label}: {_short(old_branches)} -> {_short(new_branches)}", changed=True, breaking=True)
+        return
+
+    old_canonical = [_canonical_schema(branch) for branch in old_branches]
+    new_canonical = [_canonical_schema(branch) for branch in new_branches]
+    if old_canonical == new_canonical:
+        return
+    if len(old_canonical) == len(new_canonical) and sorted(old_canonical) == sorted(new_canonical):
+        result.add(f"SCHEMA {name} {key} branches reordered {label}", changed=True)
+        return
+
+    for index in range(min(len(old_branches), len(new_branches))):
+        old_branch = old_branches[index]
+        new_branch = new_branches[index]
+        branch_path = _join_schema_path(path, f"{key}[{index}]")
+        if _canonical_schema(old_branch) != _canonical_schema(new_branch):
+            result.add(f"SCHEMA {name} {key} branch changed {_schema_label(branch_path)}", changed=True)
+            _diff_schema_node(result, name, old_branch, new_branch, path=branch_path, old_root=old_root, new_root=new_root)
+
+    for index in range(len(new_branches) - 1, len(old_branches) - 1, -1):
+        branch_path = _join_schema_path(path, f"{key}[{index}]")
+        result.add(f"SCHEMA {name} {key} branch added {_schema_label(branch_path)}", changed=True, breaking=key == "allOf")
+    for index in range(len(old_branches) - 1, len(new_branches) - 1, -1):
+        branch_path = _join_schema_path(path, f"{key}[{index}]")
+        result.add(f"SCHEMA {name} {key} branch removed {_schema_label(branch_path)}", changed=True, breaking=key == "oneOf")
+
+
+def _diff_schema_items(
+    result: PackageDiff,
+    name: str,
+    old_schema: dict[str, Any],
+    new_schema: dict[str, Any],
+    *,
+    path: str,
+    old_root: Any,
+    new_root: Any,
+) -> None:
     if "items" not in old_schema and "items" not in new_schema:
         return
     if "items" not in old_schema:
@@ -341,7 +441,7 @@ def _diff_schema_items(result: PackageDiff, name: str, old_schema: dict[str, Any
     if old_items == new_items:
         return
     if isinstance(old_items, dict) and isinstance(new_items, dict):
-        _diff_schema_node(result, name, old_items, new_items, path=_join_schema_path(path, "[]"))
+        _diff_schema_node(result, name, old_items, new_items, path=_join_schema_path(path, "[]"), old_root=old_root, new_root=new_root)
     else:
         result.add(f"SCHEMA {name} items changed {_schema_label(path)}: {_short(old_items)} -> {_short(new_items)}", breaking=True)
 
@@ -407,6 +507,107 @@ def _schema_type(schema: Any) -> str:
     if schema_type is None:
         return "<unspecified>"
     return str(schema_type)
+
+
+def _diff_and_resolve_refs(
+    result: PackageDiff,
+    name: str,
+    old_schema: dict[str, Any],
+    new_schema: dict[str, Any],
+    *,
+    path: str,
+    old_root: Any,
+    new_root: Any,
+) -> tuple[Any, Any]:
+    old_ref = _schema_ref(old_schema)
+    new_ref = _schema_ref(new_schema)
+    label = _schema_label(path)
+
+    if old_ref != new_ref:
+        if old_ref is None:
+            result.add(f"SCHEMA {name} $ref added {label}: {new_ref}", changed=True)
+        elif new_ref is None:
+            result.add(f"SCHEMA {name} $ref removed {label}: {old_ref}", changed=True)
+        else:
+            result.add(f"SCHEMA {name} $ref target changed {label}: {old_ref} -> {new_ref}", changed=True)
+
+    old_resolved = _resolve_schema_ref(old_schema, old_root)
+    new_resolved = _resolve_schema_ref(new_schema, new_root)
+    if old_resolved.unresolved:
+        result.add(f"SCHEMA {name} unresolved $ref {label}: {old_resolved.ref}", changed=True, breaking=True)
+    if new_resolved.unresolved:
+        result.add(f"SCHEMA {name} unresolved $ref {label}: {new_resolved.ref}", changed=True, breaking=True)
+    return old_resolved.schema, new_resolved.schema
+
+
+@dataclass(frozen=True)
+class _ResolvedSchema:
+    schema: Any
+    ref: str | None = None
+    unresolved: bool = False
+
+
+def _schema_ref(schema: Any) -> str | None:
+    if not isinstance(schema, dict):
+        return None
+    ref = schema.get("$ref")
+    return ref if isinstance(ref, str) else None
+
+
+def _resolve_schema_ref(schema: Any, root: Any) -> _ResolvedSchema:
+    current = schema
+    last_ref: str | None = None
+    seen: set[str] = set()
+    while isinstance(current, dict):
+        ref = _schema_ref(current)
+        if ref is None:
+            return _ResolvedSchema(current, ref=last_ref)
+        last_ref = ref
+        if ref in seen:
+            return _ResolvedSchema(current, ref=ref, unresolved=True)
+        seen.add(ref)
+        target = _resolve_json_pointer(root, ref)
+        if target is None:
+            return _ResolvedSchema(current, ref=ref, unresolved=True)
+        current = target
+    return _ResolvedSchema(current, ref=last_ref)
+
+
+def _resolve_json_pointer(root: Any, ref: str) -> Any:
+    if ref == "#":
+        return root
+    if not ref.startswith("#/"):
+        return None
+
+    current = root
+    for raw_part in ref[2:].split("/"):
+        part = raw_part.replace("~1", "/").replace("~0", "~")
+        if isinstance(current, dict):
+            if part not in current:
+                return None
+            current = current[part]
+        elif isinstance(current, list):
+            try:
+                index = int(part)
+            except ValueError:
+                return None
+            if index < 0 or index >= len(current):
+                return None
+            current = current[index]
+        else:
+            return None
+    return current
+
+
+def _canonical_schema(schema: Any) -> str:
+    try:
+        return _json_dumps_stable(schema)
+    except TypeError:
+        return repr(schema)
+
+
+def _json_dumps_stable(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 def _join_schema_path(base: str, part: str) -> str:

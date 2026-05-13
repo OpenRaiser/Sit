@@ -5,6 +5,38 @@
   "required": ["paper_type", "research_area", "evidence", "confidence"],
   "properties": {
     "paper_type": {
+      "$ref": "#/$defs/paper_type"
+    },
+    "research_area": {
+      "$ref": "#/$defs/research_area"
+    },
+    "evidence": {
+      "type": "string",
+      "minLength": 1
+    },
+    "confidence": {
+      "$ref": "#/$defs/confidence"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "allOf": [
+    {
+      "properties": {
+        "notes": {
+          "oneOf": [
+            { "type": "string" }
+          ]
+        }
+      }
+    },
+    {
+      "required": ["confidence"]
+    }
+  ],
+  "$defs": {
+    "paper_type": {
       "type": "string",
       "enum": ["survey", "benchmark", "method", "evaluation", "dataset"]
     },
@@ -19,16 +51,9 @@
         "other"
       ]
     },
-    "evidence": {
-      "type": "string",
-      "minLength": 1
-    },
     "confidence": {
       "type": "string",
       "enum": ["low", "medium", "high"]
-    },
-    "notes": {
-      "type": "string"
     }
   }
 }

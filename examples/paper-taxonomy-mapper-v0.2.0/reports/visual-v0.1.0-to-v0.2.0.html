@@ -271,6 +271,18 @@ code {
 <span>schema</span>
 <p>SCHEMA changed output: output.schema.json -&gt; output.schema.json</p>
 </article>
+<article class="diff-item changed">
+<span>schema</span>
+<p>SCHEMA output allOf branch changed allOf[0]</p>
+</article>
+<article class="diff-item breaking">
+<span>schema</span>
+<p>SCHEMA output oneOf branch removed allOf[0].notes.oneOf[1]</p>
+</article>
+<article class="diff-item breaking">
+<span>schema</span>
+<p>SCHEMA output allOf branch added allOf[1]</p>
+</article>
 <article class="diff-item breaking">
 <span>schema</span>
 <p>SCHEMA output property added confidence (required)</p>
@@ -282,6 +294,10 @@ code {
 <article class="diff-item breaking">
 <span>schema</span>
 <p>SCHEMA output property added research_area (required)</p>
+</article>
+<article class="diff-item changed">
+<span>schema</span>
+<p>SCHEMA output $ref target changed paper_type: #/definitions/paper_type -&gt; #/$defs/paper_type</p>
 </article>
 <article class="diff-item changed">
 <span>test</span>

@@ -5,11 +5,34 @@
   "required": ["paper_type"],
   "properties": {
     "paper_type": {
-      "type": "string",
-      "enum": ["survey", "benchmark", "method", "evaluation", "dataset"]
+      "$ref": "#/definitions/paper_type"
     },
     "notes": {
       "type": "string"
+    }
+  },
+  "allOf": [
+    {
+      "properties": {
+        "notes": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "summary": { "type": "string" }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "paper_type": {
+      "type": "string",
+      "enum": ["survey", "benchmark", "method", "evaluation", "dataset"]
     }
   }
 }

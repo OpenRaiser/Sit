@@ -62,6 +62,37 @@ class CliTest(unittest.TestCase):
             self.assertIn("SCHEMA output additionalProperties restricted metadata", output)
             self.assertIn("RISK breaking-change", output)
 
+    def test_diff_reports_complex_schema_ref_and_combinator_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            old = _write_package(root / "old", version="0.1.0")
+            new = _write_package(root / "new", version="0.2.0")
+            _write_complex_schema(old, include_link_payload=True, add_confidence_constraint=False)
+            _write_complex_schema(new, include_link_payload=False, add_confidence_constraint=True)
+
+            code, output = _run_cli(["diff", str(old), str(new)])
+
+            self.assertEqual(code, 0)
+            self.assertIn("SCHEMA output enum removed values classification: 'dataset'", output)
+            self.assertIn("SCHEMA output oneOf branch removed payload.oneOf[1]", output)
+            self.assertIn("SCHEMA output allOf branch added metadata.allOf[1]", output)
+            self.assertIn("RISK breaking-change", output)
+
+    def test_diff_reports_complex_schema_ref_target_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            old = _write_package(root / "old", version="0.1.0")
+            new = _write_package(root / "new", version="0.2.0")
+            _write_ref_target_schema(old, ref="#/definitions/reviewer")
+            _write_ref_target_schema(new, ref="#/$defs/reviewer")
+
+            code, output = _run_cli(["diff", str(old), str(new)])
+
+            self.assertEqual(code, 0)
+            self.assertIn("SCHEMA output $ref target changed reviewer: #/definitions/reviewer -> #/$defs/reviewer", output)
+            self.assertIn("SCHEMA output enum added reviewer: 'lead', 'peer'", output)
+            self.assertIn("RISK breaking-change", output)
+
     def test_diff_supports_json_and_markdown_formats(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -611,6 +642,78 @@ def _write_nested_schema(
         "additionalProperties": not closed,
         "required": metadata_required,
         "properties": metadata_properties,
+    }
+    schema_path.write_text(json.dumps(schema), encoding="utf-8")
+
+
+def _write_complex_schema(root: Path, *, include_link_payload: bool, add_confidence_constraint: bool) -> None:
+    schema_path = root / "schemas" / "output.schema.json"
+    schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["answer", "classification", "payload", "metadata"],
+        "properties": {
+            "answer": {"type": "string"},
+            "classification": {"$ref": "#/$defs/classification"},
+            "payload": {
+                "oneOf": [
+                    {"$ref": "#/$defs/textPayload"},
+                    *([{"$ref": "#/$defs/linkPayload"}] if include_link_payload else []),
+                ]
+            },
+            "metadata": {
+                "allOf": [
+                    {"$ref": "#/$defs/baseMetadata"},
+                    *([{"required": ["confidence"], "properties": {"confidence": {"type": "string"}}}] if add_confidence_constraint else []),
+                ]
+            },
+        },
+        "$defs": {
+            "classification": {
+                "type": "string",
+                "enum": ["survey", "method", *([] if add_confidence_constraint else ["dataset"])],
+            },
+            "textPayload": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["text"],
+                "properties": {"text": {"type": "string"}},
+            },
+            "linkPayload": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["url"],
+                "properties": {"url": {"type": "string", "format": "uri"}},
+            },
+            "baseMetadata": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["source"],
+                "properties": {"source": {"type": "string"}},
+            },
+        },
+    }
+    schema_path.write_text(json.dumps(schema), encoding="utf-8")
+
+
+def _write_ref_target_schema(root: Path, *, ref: str) -> None:
+    schema_path = root / "schemas" / "output.schema.json"
+    schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["answer", "reviewer"],
+        "properties": {
+            "answer": {"type": "string"},
+            "reviewer": {"$ref": ref},
+        },
+        "definitions": {
+            "reviewer": {"type": "string"},
+        },
+        "$defs": {
+            "reviewer": {"type": "string", "enum": ["lead", "peer"]},
+        },
     }
     schema_path.write_text(json.dumps(schema), encoding="utf-8")
 

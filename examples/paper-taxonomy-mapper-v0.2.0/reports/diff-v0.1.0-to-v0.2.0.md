@@ -1,6 +1,6 @@
 # paper-taxonomy-mapper 0.2.0 SIT Report
 
-Date: 2026-05-12
+Date: 2026-05-13
 
 ## Package
 
@@ -25,10 +25,10 @@ Date: 2026-05-12
 ## Golden Tests
 
 - Result: pass
-- `OK  survey-001: expected validates`
-- `OK  benchmark-001: expected validates`
-- `OK  method-001: expected validates`
-- `SUMMARY 3/3 golden expected records validated`
+- `OK  survey-001: schema_only match passed`
+- `OK  benchmark-001: schema_only match passed`
+- `OK  method-001: schema_only match passed`
+- `SUMMARY 3/3 golden cases passed`
 
 ## Diff
 
@@ -39,9 +39,13 @@ Date: 2026-05-12
 - `MANIFEST changed version: '0.1.0' -> '0.2.0'`
 - `PROMPT changed classify: classify.md -> classify.md`
 - `SCHEMA changed output: output.schema.json -> output.schema.json`
+- `SCHEMA output allOf branch changed allOf[0]`
+- `SCHEMA output oneOf branch removed allOf[0].notes.oneOf[1]`
+- `SCHEMA output allOf branch added allOf[1]`
 - `SCHEMA output property added confidence (required)`
 - `SCHEMA output property added evidence (required)`
 - `SCHEMA output property added research_area (required)`
+- `SCHEMA output $ref target changed paper_type: #/definitions/paper_type -> #/$defs/paper_type`
 - `TEST changed golden: golden.jsonl -> golden.jsonl`
 - `GOLDEN expected changed benchmark-001`
 - `GOLDEN expected changed method-001`
