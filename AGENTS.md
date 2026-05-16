@@ -51,7 +51,7 @@ The completed local loop now includes:
 
 The next CLI milestone should focus on:
 
-- external pilot preparation before more large CLI feature expansion
+- running external pilots with `docs/pilots/external-trial-kit.md` before more large CLI feature expansion
 - VS Code plugin minimum loop using existing JSON outputs
 - gradual Skill Package adoption: schema-optional and prompt-only package paths
 - user-facing docs cleanup that separates product usage from internal control-theory planning
