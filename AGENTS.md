@@ -48,11 +48,12 @@ The completed local loop now includes:
 - `sit deps check` for local `deps.yaml` path dependencies and non-blocking commit warnings
 - release reverse-dependency hints for sibling Skill packages
 - PyInstaller binary build dry-run via `scripts/build_binary.py`
+- VS Code extension minimum loop that calls existing `sit` JSON/text outputs for Info, Validate, Test, Diff, and status refresh
 
 The next CLI milestone should focus on:
 
 - running external pilots with `docs/pilots/external-trial-kit.md` before more large CLI feature expansion
-- VS Code plugin minimum loop using existing JSON outputs
+- manual VS Code Extension Development Host verification and packaging path
 - gradual Skill Package adoption: schema-optional and prompt-only package paths
 - user-facing docs cleanup that separates product usage from internal control-theory planning
 - real PyInstaller build verification once PyInstaller is installed

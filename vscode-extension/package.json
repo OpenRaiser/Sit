@@ -1,0 +1,80 @@
+{
+  "name": "sithub-vscode",
+  "displayName": "SitHub",
+  "description": "VS Code bridge for the sit CLI: inspect, validate, test, and diff Skill Packages.",
+  "version": "0.1.0",
+  "publisher": "openraiser",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onWorkspaceContains:skill.yaml",
+    "onCommand:sithub.info",
+    "onCommand:sithub.validate",
+    "onCommand:sithub.test",
+    "onCommand:sithub.diffHead",
+    "onCommand:sithub.refreshStatus"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "sithub.info",
+        "title": "SitHub: Info"
+      },
+      {
+        "command": "sithub.validate",
+        "title": "SitHub: Validate"
+      },
+      {
+        "command": "sithub.test",
+        "title": "SitHub: Test"
+      },
+      {
+        "command": "sithub.diffHead",
+        "title": "SitHub: Diff HEAD~1..HEAD"
+      },
+      {
+        "command": "sithub.refreshStatus",
+        "title": "SitHub: Refresh Status"
+      }
+    ],
+    "configuration": {
+      "title": "SitHub",
+      "properties": {
+        "sithub.sitPath": {
+          "type": "string",
+          "default": "sit",
+          "description": "Path to the sit CLI executable. Use sithub.sitArgs for fixed arguments such as -m sit.cli."
+        },
+        "sithub.sitArgs": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Fixed arguments passed before the SitHub command, for example [\"-m\", \"sit.cli\"] when sithub.sitPath is python3."
+        },
+        "sithub.defaultDiffRange": {
+          "type": "string",
+          "default": "HEAD~1..HEAD",
+          "description": "Default Git range for SitHub semantic diff."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "check-json": "node -e \"JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('package.json ok')\"",
+    "compile": "tsc -p ./",
+    "lint": "node -c out/extension.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.0.0"
+  }
+}
