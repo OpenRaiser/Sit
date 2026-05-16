@@ -5,6 +5,11 @@
   "version": "0.1.0",
   "publisher": "openraiser",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpenRaiser/SitHub.git",
+    "directory": "vscode-extension"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -70,9 +75,13 @@
   "scripts": {
     "check-json": "node -e \"JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('package.json ok')\"",
     "compile": "tsc -p ./",
-    "lint": "node -c out/extension.js"
+    "lint": "node -c out/extension.js",
+    "prepackage": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\"",
+    "package": "vsce package --out dist/sithub-vscode-0.1.0.vsix",
+    "vscode:prepublish": "npm run compile"
   },
   "devDependencies": {
+    "@vscode/vsce": "^3.2.2",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
     "typescript": "^5.0.0"

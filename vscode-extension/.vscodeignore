@@ -1,5 +1,7 @@
 node_modules/
 .vscode/
+.gitignore
 src/
 tsconfig.json
+out/**/*.map
 *.vsix

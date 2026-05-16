@@ -7,7 +7,7 @@
     ],
     "outDir": "out",
     "rootDir": "src",
-    "sourceMap": true,
+    "sourceMap": false,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true

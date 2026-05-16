@@ -47,18 +47,41 @@ Results are written to the `SitHub` Output Channel.
 
 ## Manual Verification
 
-From the repository root:
+From this directory:
 
 ```bash
-node -e "JSON.parse(require('fs').readFileSync('vscode-extension/package.json','utf8')); console.log('package ok')"
-node -c vscode-extension/out/extension.js
+npm install
+npm run check-json
+npm run compile
+npm run lint
+npm run package
 ```
 
 In VS Code:
 
-1. Open `/mnt/shared-storage-user/xuxinglong-p/paper-webpage-builder` or a SitHub example package.
-2. Press `F5` from `vscode-extension/` to launch the Extension Development Host.
-3. Run `SitHub: Info`.
-4. Run `SitHub: Validate`.
-5. Run `SitHub: Test`.
-6. Run `SitHub: Diff HEAD~1..HEAD`.
+1. Open this `vscode-extension/` folder.
+2. Press `F5` and choose `Run SitHub Extension` to launch the Extension Development Host.
+3. In the Extension Development Host, open `/mnt/shared-storage-user/xuxinglong-p/paper-webpage-builder` or a SitHub example package.
+4. If testing against the repository source instead of an installed `sit`, configure:
+
+   ```json
+   {
+     "sithub.sitPath": "python3",
+     "sithub.sitArgs": ["-m", "sit.cli"]
+   }
+   ```
+
+5. Run `SitHub: Info`.
+6. Run `SitHub: Validate`.
+7. Run `SitHub: Test`.
+8. Run `SitHub: Diff HEAD~1..HEAD`.
+9. Confirm the `SitHub` Output Channel shows command output and the status bar reflects validation/test state.
+
+## Packaging Decision
+
+The first extension package does not embed a `sit` binary. It expects either:
+
+- `sit` available on `PATH`, or
+- `sithub.sitPath` plus `sithub.sitArgs` pointing at a local Python source checkout.
+
+Embedding a binary should wait until the PyInstaller path has a measured artifact size, startup time, and platform matrix.
