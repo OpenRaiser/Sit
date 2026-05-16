@@ -142,7 +142,7 @@ def required_bump_for_gate(diff: PackageDiff) -> str:
         return "major"
     if any(event.changed for event in meaningful_events):
         return "minor"
-    return "patch"
+    return "none"
 
 
 @contextmanager
@@ -252,4 +252,7 @@ def _safe_extract(archive: tarfile.TarFile, destination: Path) -> None:
         target = (destination / member.name).resolve()
         if target != destination and destination not in target.parents:
             raise SitError(f"Unsafe path in git archive: {member.name}")
-    archive.extractall(destination)
+    try:
+        archive.extractall(destination, filter="data")
+    except TypeError:
+        archive.extractall(destination)

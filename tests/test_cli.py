@@ -131,6 +131,20 @@ class CliTest(unittest.TestCase):
             self.assertIn("SCHEMA output enum added reviewer: 'lead', 'peer'", output)
             self.assertIn("RISK breaking-change", output)
 
+    def test_diff_reports_anyof_branch_removal_as_breaking(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            old = _write_package(root / "old", version="0.1.0")
+            new = _write_package(root / "new", version="0.2.0")
+            _write_anyof_schema(old, include_number=True)
+            _write_anyof_schema(new, include_number=False)
+
+            code, output = _run_cli(["diff", str(old), str(new)])
+
+            self.assertEqual(code, 0)
+            self.assertIn("SCHEMA output anyOf branch removed choice.anyOf[1]", output)
+            self.assertIn("RISK breaking-change", output)
+
     def test_diff_supports_json_and_markdown_formats(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -763,6 +777,28 @@ dependencies:
             self.assertEqual(stdout, "")
             self.assertIn("No test runner configured", stderr)
 
+    def test_test_run_does_not_shell_execute_case_id(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            package = _write_package(root / "runner-injection-skill", version="0.1.0")
+            marker = root / "runner-injection-marker"
+            _write_case_id_runner_script(package)
+            command = f"{sys.executable} scripts/run_case.py --input {{input}} --output {{output}} --case-id {{case_id}}"
+            _append_runner_command(package, command=command)
+            record = {
+                "case_id": f"case; touch {marker}",
+                "input": {"text": "hello"},
+                "expected": {"answer": "ok"},
+                "match_mode": "exact",
+            }
+            (package / "tests" / "golden.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+            code, output = _run_cli(["test", str(package), "--run"])
+
+            self.assertEqual(code, 0)
+            self.assertIn("exact match passed", output)
+            self.assertFalse(marker.exists())
+
     def test_git_range_diff_and_pr_summary_use_committed_snapshots(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package = _write_package(Path(tmp) / "git-range-skill", version="0.1.0")
@@ -989,6 +1025,26 @@ dependencies:
             self.assertEqual(log_code, 0)
             self.assertIn("feat: initial skill", log_output)
 
+    def test_commit_allows_non_semantic_change_without_version_bump(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            package = _write_package(Path(tmp) / "docs-only-skill", version="0.1.0")
+            _git(package, "init")
+            _git(package, "config", "user.email", "sit@example.test")
+            _git(package, "config", "user.name", "SIT Test")
+            _git(package, "add", ".")
+            _git(package, "commit", "-m", "feat: initial skill")
+            (package / "docs").mkdir()
+            (package / "docs" / "note.md").write_text("Operator note.\n", encoding="utf-8")
+            _git(package, "add", ".")
+
+            code, stdout, stderr = _run_cli_capture(["commit", "-m", "docs: add note"], cwd=package)
+
+            self.assertEqual(code, 0)
+            self.assertIn("required=none, actual=none", stdout)
+            self.assertEqual(stderr, "")
+            log = subprocess.run(["git", "log", "--oneline"], cwd=package, check=True, text=True, capture_output=True).stdout
+            self.assertIn("docs: add note", log)
+
     def test_commit_blocks_breaking_change_without_major_version_bump(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package = _write_package(Path(tmp) / "gate-skill", version="0.1.0")
@@ -1026,6 +1082,31 @@ dependencies:
             self.assertIn("Fix: update skill.yaml to a major bump or run `sit release major`", stderr)
             self.assertIn("version: 0.2.0", (package / "skill.yaml").read_text(encoding="utf-8"))
 
+    def test_release_tag_points_to_release_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            package = _write_package(Path(tmp) / "tagged-release-skill", version="0.1.0")
+            _git(package, "init")
+            _git(package, "config", "user.email", "sit@example.test")
+            _git(package, "config", "user.name", "SIT Test")
+            _git(package, "add", ".")
+            _git(package, "commit", "-m", "feat: initial skill")
+
+            code, output = _run_cli(["release", "patch", str(package)])
+
+            self.assertEqual(code, 0)
+            self.assertIn("git tag: v0.1.1", output)
+            head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=package, check=True, text=True, capture_output=True).stdout.strip()
+            tag_commit = subprocess.run(["git", "rev-parse", "v0.1.1^{}"], cwd=package, check=True, text=True, capture_output=True).stdout.strip()
+            tagged_manifest = subprocess.run(
+                ["git", "show", "v0.1.1:skill.yaml"],
+                cwd=package,
+                check=True,
+                text=True,
+                capture_output=True,
+            ).stdout
+            self.assertEqual(tag_commit, head)
+            self.assertIn("version: 0.1.1", tagged_manifest)
+
     def test_release_allows_major_bump_for_breaking_change(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package = _write_package(Path(tmp) / "release-major-skill", version="0.1.0")
@@ -1057,6 +1138,18 @@ dependencies:
             self.assertIn("### Breaking", report)
             self.assertIn("### Reproduce", report)
             self.assertIn("SCHEMA output property added confidence (required)", report)
+
+    def test_yaml_numeric_version_is_normalized_for_release(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            package = _write_package(Path(tmp) / "numeric-version-skill", version="1.0")
+
+            validate_code, validate_output = _run_cli(["validate", str(package)])
+            release_code, release_output = _run_cli(["release", "patch", str(package), "--no-git-tag"])
+
+            self.assertEqual(validate_code, 0)
+            self.assertIn("OK  version: 1.0.0", validate_output)
+            self.assertEqual(release_code, 0)
+            self.assertIn("Released sample-skill@1.0.1", release_output)
 
 
 def _run_cli(argv: list[str]) -> tuple[int, str]:
@@ -1257,6 +1350,19 @@ def _write_ref_target_schema(root: Path, *, ref: str) -> None:
     schema_path.write_text(json.dumps(schema), encoding="utf-8")
 
 
+def _write_anyof_schema(root: Path, *, include_number: bool) -> None:
+    schema_path = root / "schemas" / "output.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    schema["properties"]["choice"] = {
+        "anyOf": [
+            {"type": "string"},
+            *([{"type": "number"}] if include_number else []),
+        ]
+    }
+    schema["required"].append("choice")
+    schema_path.write_text(json.dumps(schema), encoding="utf-8")
+
+
 def _upgrade_package_to_v2(root: Path) -> None:
     manifest = (root / "skill.yaml").read_text(encoding="utf-8")
     (root / "skill.yaml").write_text(manifest.replace("version: 0.1.0", "version: 0.2.0"), encoding="utf-8")
@@ -1295,6 +1401,28 @@ def _write_runner_script(root: Path, *, answer_expr: str) -> None:
     )
 
 
+def _write_case_id_runner_script(root: Path) -> None:
+    scripts = root / "scripts"
+    scripts.mkdir(exist_ok=True)
+    (scripts / "run_case.py").write_text(
+        "\n".join(
+            [
+                "import argparse",
+                "import json",
+                "",
+                "parser = argparse.ArgumentParser()",
+                "parser.add_argument('--input', required=True)",
+                "parser.add_argument('--output', required=True)",
+                "parser.add_argument('--case-id', required=True)",
+                "args = parser.parse_args()",
+                "open(args.output, 'w', encoding='utf-8').write(json.dumps({'answer': 'ok'}))",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+
 def _write_resource_files(root: Path, *, script: str, asset: str, reference: str) -> None:
     (root / "scripts").mkdir(exist_ok=True)
     (root / "assets").mkdir(exist_ok=True)
@@ -1308,9 +1436,9 @@ def _write_deps_yaml(root: Path, content: str) -> None:
     (root / "deps.yaml").write_text(content.strip() + "\n", encoding="utf-8")
 
 
-def _append_runner_command(root: Path) -> None:
+def _append_runner_command(root: Path, *, command: str | None = None) -> None:
     manifest = (root / "skill.yaml").read_text(encoding="utf-8")
-    command = f"{sys.executable} scripts/run_case.py --input {{input}} --output {{output}}"
+    command = command or f"{sys.executable} scripts/run_case.py --input {{input}} --output {{output}}"
     (root / "skill.yaml").write_text(manifest + f"commands:\n  run_case: \"{command}\"\n", encoding="utf-8")
 
 

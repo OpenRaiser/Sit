@@ -64,7 +64,17 @@ def release_package(
         git_add_paths = [str(refreshed.manifest_path), str(refreshed.root / "CHANGELOG.md"), str(report_path)]
         if bundle_path is not None:
             git_add_paths.append(str(bundle_path))
-        run_git(["add", *git_add_paths], cwd=refreshed.root)
+        run_git(["add", "-f", *git_add_paths], cwd=refreshed.root)
+        run_git(
+            [
+                "commit",
+                "-m",
+                f"release: {refreshed.name} v{new_version}",
+                "--",
+                *git_add_paths,
+            ],
+            cwd=refreshed.root,
+        )
         run_git(["tag", "-a", tag_name, "-m", f"Release {tag_name}"], cwd=refreshed.root)
         tagged = True
 

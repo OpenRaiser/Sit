@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
+import shlex
 import subprocess
 import tempfile
 from typing import Any
@@ -260,20 +261,24 @@ def _run_case(
         input_path.write_text(json.dumps(record.get("input", {}), ensure_ascii=False), encoding="utf-8")
 
         try:
-            command = runner_command.format(
-                input=str(input_path),
-                output=str(output_path),
-                case_id=str(case_id),
-                root=str(package.root),
-            )
+            command = [
+                part.format(
+                    input=str(input_path),
+                    output=str(output_path),
+                    case_id=str(case_id),
+                    root=str(package.root),
+                )
+                for part in shlex.split(runner_command)
+            ]
         except KeyError as exc:
             return None, f"runner command has unsupported placeholder: {exc}"
+        except ValueError as exc:
+            return None, f"runner command is not a valid argv template: {exc}"
 
         try:
             completed = subprocess.run(
                 command,
                 cwd=package.root,
-                shell=True,
                 check=False,
                 text=True,
                 capture_output=True,

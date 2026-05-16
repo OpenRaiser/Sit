@@ -51,9 +51,10 @@ The completed local loop now includes:
 
 The next CLI milestone should focus on:
 
+- external pilot preparation before more large CLI feature expansion
 - VS Code plugin minimum loop using existing JSON outputs
-- optional `sit diff --explain` only if it degrades gracefully without API keys
-- terminal polish for `sit info/status` while preserving JSON/plain compatibility
+- gradual Skill Package adoption: schema-optional and prompt-only package paths
+- user-facing docs cleanup that separates product usage from internal control-theory planning
 - real PyInstaller build verification once PyInstaller is installed
 - a second real Skill pilot for `deps.yaml`, release bundles, and reverse dependencies
 

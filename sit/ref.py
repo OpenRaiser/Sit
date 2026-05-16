@@ -129,4 +129,7 @@ def _safe_extract(archive: tarfile.TarFile, destination: Path) -> None:
         target = (destination / member.name).resolve()
         if target != destination and destination not in target.parents:
             raise SitError(f"Unsafe path in git archive: {member.name}")
-    archive.extractall(destination)
+    try:
+        archive.extractall(destination, filter="data")
+    except TypeError:
+        archive.extractall(destination)

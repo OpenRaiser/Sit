@@ -517,7 +517,7 @@ def _diff_schema_combinators(
     old_root: Any,
     new_root: Any,
 ) -> None:
-    for key in ("oneOf", "allOf"):
+    for key in ("oneOf", "anyOf", "allOf"):
         _diff_schema_combinator(result, name, old_schema, new_schema, key, path=path, old_root=old_root, new_root=new_root)
 
 
@@ -541,7 +541,11 @@ def _diff_schema_combinator(
     old_valid = isinstance(old_branches, list)
     new_valid = isinstance(new_branches, list)
     if old_branches is None:
-        result.add(f"SCHEMA {name} {key} added {label} ({len(new_branches) if new_valid else 'invalid'} branches)", changed=True, breaking=key == "allOf")
+        result.add(
+            f"SCHEMA {name} {key} added {label} ({len(new_branches) if new_valid else 'invalid'} branches)",
+            changed=True,
+            breaking=key in {"allOf", "anyOf"},
+        )
         return
     if new_branches is None:
         result.add(f"SCHEMA {name} {key} removed {label}", changed=True, breaking=key == "oneOf")
@@ -571,7 +575,7 @@ def _diff_schema_combinator(
         result.add(f"SCHEMA {name} {key} branch added {_schema_label(branch_path)}", changed=True, breaking=key == "allOf")
     for index in range(len(old_branches) - 1, len(new_branches) - 1, -1):
         branch_path = _join_schema_path(path, f"{key}[{index}]")
-        result.add(f"SCHEMA {name} {key} branch removed {_schema_label(branch_path)}", changed=True, breaking=key == "oneOf")
+        result.add(f"SCHEMA {name} {key} branch removed {_schema_label(branch_path)}", changed=True, breaking=key in {"oneOf", "anyOf"})
 
 
 def _diff_schema_items(

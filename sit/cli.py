@@ -210,9 +210,7 @@ def cmd_ci_summary(args: argparse.Namespace) -> int:
     compare_range = parse_git_range(compare_spec)
     with load_compare_package(package_spec_arg, compare_spec) as (package, compare):
         package_spec = package_spec_arg if args.package_dir else ("." if compare_range else None)
-        diff_command = f"python3 -m sit.cli diff {args.compare}" if compare_range else None
-        if compare_range:
-            diff_command = f"python3 -m sit.cli report {package_spec_arg} --compare {compare_spec}"
+        diff_command = f"python3 -m sit.cli report {package_spec_arg} --compare {compare_spec}" if compare_range else None
         payload = build_report_payload(
             package,
             compare=compare,

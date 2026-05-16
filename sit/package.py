@@ -30,7 +30,7 @@ class SkillPackage:
     @property
     def version(self) -> str | None:
         value = self.manifest.get("version")
-        return str(value) if value is not None else None
+        return _normalize_version(value)
 
     @property
     def description(self) -> str | None:
@@ -175,3 +175,16 @@ def _skip_resource_file(path: Path) -> bool:
     if path.suffix in {".pyc", ".pyo"}:
         return True
     return any(part.startswith(".") or part == "__pycache__" for part in path.parts)
+
+
+def _normalize_version(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    if isinstance(value, int) and not isinstance(value, bool):
+        return f"{value}.0.0"
+    if isinstance(value, float):
+        text = str(value)
+        return f"{text}.0" if text.count(".") == 1 else text
+    return str(value)
