@@ -7,3 +7,7 @@ __pycache__/
 .venv/
 dist/
 build/
+
+# macOS metadata
+._*
+.DS_Store

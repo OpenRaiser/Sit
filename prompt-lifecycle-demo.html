@@ -1,0 +1,1225 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SitHub Prompt Lifecycle Demo</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f5f7fa;
+  --panel: #ffffff;
+  --soft: #f8fafc;
+  --ink: #17202a;
+  --muted: #667085;
+  --line: #d8dee8;
+  --line-strong: #b8c1cf;
+  --blue: #2256c7;
+  --blue-soft: #e8eefc;
+  --green: #13795b;
+  --green-soft: #e5f5ef;
+  --red: #b42318;
+  --red-soft: #fde8e6;
+  --amber: #9a5b00;
+  --amber-soft: #fff2d4;
+  --cyan: #0e7490;
+  --cyan-soft: #e1f4f8;
+  --shadow: 0 14px 34px rgba(24, 39, 58, .08);
+  --radius: 8px;
+}
+* { box-sizing: border-box; }
+html { min-width: 320px; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  background:
+    linear-gradient(180deg, #fbfcfd 0, #f7f9fb 210px, var(--page) 520px),
+    var(--page);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0;
+}
+button, textarea, input { font: inherit; letter-spacing: 0; }
+button { cursor: pointer; }
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 22px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,.94);
+  backdrop-filter: blur(12px);
+}
+.brand {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mark {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #fff;
+  background: #1d2939;
+  font-weight: 800;
+}
+.brand strong {
+  display: block;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.brand span {
+  display: block;
+  max-width: 58vw;
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.top-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.link-button,
+.primary-button,
+.ghost-button,
+.tab-button {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--ink);
+  text-decoration: none;
+}
+.link-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 11px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.primary-button {
+  padding: 0 13px;
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #fff;
+  font-weight: 700;
+}
+.ghost-button {
+  padding: 0 12px;
+  color: var(--muted);
+}
+.primary-button:hover { background: #1d4db7; }
+.ghost-button:hover, .link-button:hover, .tab-button:hover {
+  border-color: var(--line-strong);
+  background: var(--soft);
+}
+.page {
+  width: min(1460px, calc(100% - 28px));
+  margin: 0 auto;
+  padding: 18px 0 38px;
+}
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: end;
+  margin-bottom: 14px;
+  padding: 18px 4px 4px;
+}
+.hero h1 {
+  margin: 0 0 8px;
+  font-size: clamp(25px, 3vw, 38px);
+  line-height: 1.08;
+}
+.hero p {
+  margin: 0;
+  max-width: 780px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.state-strip {
+  min-width: min(440px, 44vw);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.state-step {
+  min-height: 66px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.state-step.active {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+.state-step.done {
+  border-color: #abdbc9;
+  background: var(--green-soft);
+}
+.state-step strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+.state-step span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: 390px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.panel,
+.input-panel,
+.metric,
+.event-row,
+.file-view,
+.terminal,
+.report {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+.input-panel {
+  position: sticky;
+  top: 76px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+.input-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.input-head h2 {
+  margin: 0;
+  font-size: 17px;
+}
+.mini-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 99px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.field {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+.field label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+textarea,
+input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--soft);
+  color: var(--ink);
+  outline: none;
+}
+textarea {
+  min-height: 150px;
+  resize: vertical;
+  padding: 10px 11px;
+  line-height: 1.48;
+}
+input {
+  min-height: 36px;
+  padding: 0 10px;
+}
+textarea:focus,
+input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(34, 86, 199, .12);
+}
+.button-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.main {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.metric {
+  min-height: 92px;
+  padding: 14px;
+  display: grid;
+  align-content: space-between;
+  gap: 9px;
+}
+.metric span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.metric strong {
+  font-size: 22px;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+.metric small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.tone-pass { color: var(--green); }
+.tone-warn { color: var(--amber); }
+.tone-fail { color: var(--red); }
+.tone-info { color: var(--blue); }
+.panel {
+  min-width: 0;
+  overflow: hidden;
+}
+.panel-head {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+.panel-head h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.panel-head span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.package-grid {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 0;
+}
+.tree {
+  min-height: 360px;
+  padding: 12px;
+  border-right: 1px solid var(--line);
+  background: var(--soft);
+}
+.tree-title {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.tree-list {
+  display: grid;
+  gap: 6px;
+}
+.tree-item {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.tree-item.active {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+.file-view {
+  border-width: 0;
+  border-radius: 0;
+  min-width: 0;
+}
+.file-tabs {
+  min-height: 42px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+.tab-button {
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 0 9px;
+  color: var(--muted);
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.tab-button.active {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #fff;
+}
+pre {
+  margin: 0;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.code-block {
+  min-height: 318px;
+  padding: 14px;
+  background:
+    linear-gradient(90deg, rgba(34,86,199,.035) 0 1px, transparent 1px 100%),
+    #fff;
+  background-size: 32px 32px;
+}
+.diff-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr);
+  gap: 14px;
+}
+.diff-lines {
+  padding: 12px;
+  background: #fff;
+}
+.diff-line {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 9px;
+  min-height: 27px;
+  align-items: start;
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.diff-line code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.diff-add {
+  background: var(--green-soft);
+  color: #0f5c45;
+}
+.diff-del {
+  background: var(--red-soft);
+  color: #8f1d15;
+}
+.diff-same {
+  color: #475467;
+}
+.event-list {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+.event-row {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: 5px minmax(0, 1fr);
+  gap: 11px;
+  overflow: hidden;
+}
+.event-bar { background: var(--blue); }
+.event-row[data-risk="breaking"] .event-bar { background: var(--red); }
+.event-row[data-risk="review"] .event-bar { background: var(--amber); }
+.event-row[data-risk="minor"] .event-bar { background: var(--cyan); }
+.event-body {
+  min-width: 0;
+  padding: 10px 10px 10px 0;
+}
+.event-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 5px;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 21px;
+  padding: 0 8px;
+  border-radius: 99px;
+  background: #eef1f5;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.tag.breaking { background: var(--red-soft); color: var(--red); }
+.tag.review { background: var(--amber-soft); color: var(--amber); }
+.tag.minor { background: var(--cyan-soft); color: var(--cyan); }
+.tag.info { background: var(--blue-soft); color: var(--blue); }
+.event-title {
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.event-desc {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.lower-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+}
+.terminal,
+.report {
+  min-width: 0;
+  overflow: hidden;
+}
+.terminal-body {
+  min-height: 230px;
+  padding: 13px;
+  background: #111827;
+  color: #d1d5db;
+}
+.terminal-body .ok { color: #7dd3a9; }
+.terminal-body .warn { color: #f6c768; }
+.terminal-body .cmd { color: #93c5fd; }
+.report-body {
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+.report-line {
+  display: grid;
+  grid-template-columns: 126px minmax(0, 1fr);
+  gap: 10px;
+  font-size: 13px;
+}
+.report-line span:first-child {
+  color: var(--muted);
+}
+.report-line span:last-child {
+  overflow-wrap: anywhere;
+}
+.empty {
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+}
+@media (max-width: 1120px) {
+  .workspace,
+  .diff-grid,
+  .lower-grid,
+  .hero {
+    grid-template-columns: 1fr;
+  }
+  .input-panel {
+    position: static;
+  }
+  .state-strip {
+    min-width: 0;
+  }
+}
+@media (max-width: 760px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 10px 14px;
+  }
+  .top-actions {
+    width: 100%;
+  }
+  .link-button {
+    justify-content: center;
+    flex: 1;
+  }
+  .page {
+    width: min(100% - 18px, 1460px);
+  }
+  .state-strip,
+  .metrics,
+  .package-grid {
+    grid-template-columns: 1fr;
+  }
+  .tree {
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .button-grid {
+    grid-template-columns: 1fr;
+  }
+  .metric {
+    min-height: 76px;
+  }
+  textarea {
+    min-height: 128px;
+  }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="mark">S</div>
+    <div>
+      <strong>SitHub Prompt Lifecycle</strong>
+      <span>prompt 初始化、语义 diff、版本门禁和 PR 摘要的端到端演示</span>
+    </div>
+  </div>
+  <div class="top-actions">
+    <a class="link-button" href="./demo.html">Review Console</a>
+    <a class="link-button" href="./reports/project_report.md">Report</a>
+  </div>
+</header>
+
+<main class="page">
+  <section class="hero">
+    <div>
+      <h1>从一段 Prompt 到可评审 Skill Package</h1>
+      <p>输入第一版 prompt 后生成标准包结构；输入第二版 prompt 后展示 SitHub 如何把文本变化转成可观测的风险、版本建议和 PR 摘要。</p>
+    </div>
+    <div class="state-strip" aria-label="demo status">
+      <div class="state-step active" data-step="draft">
+        <strong>01 Prompt</strong>
+        <span>等待 v1/v2 输入</span>
+      </div>
+      <div class="state-step" data-step="init">
+        <strong>02 sit init</strong>
+        <span>生成标准包</span>
+      </div>
+      <div class="state-step" data-step="diff">
+        <strong>03 sit diff</strong>
+        <span>输出评审信号</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="workspace">
+    <aside class="input-panel">
+      <div class="input-head">
+        <h2>Prompt 输入</h2>
+        <span class="mini-status" id="runStatus">draft</span>
+      </div>
+      <div class="field">
+        <label for="skillName">Skill name</label>
+        <input id="skillName" value="paper-taxonomy-mapper">
+      </div>
+      <div class="field">
+        <label for="v1Prompt">v1 prompt</label>
+        <textarea id="v1Prompt">你是论文分类助手。
+读取论文标题和摘要，判断它属于哪个研究领域。
+输出 JSON，字段包括 title 和 category。
+分类必须简洁，不要编造论文中不存在的信息。</textarea>
+      </div>
+      <div class="field">
+        <label for="v2Prompt">v2 prompt</label>
+        <textarea id="v2Prompt">你是论文分类助手。
+读取论文标题和摘要，判断它属于哪个研究领域。
+输出 JSON，字段包括 title、category、research_area、evidence 和 confidence。
+evidence 必须引用摘要中的依据，confidence 使用 0 到 1 的数字。
+如果证据不足，confidence 不得高于 0.6。
+分类必须简洁，不要编造论文中不存在的信息。</textarea>
+      </div>
+      <div class="button-grid">
+        <button class="primary-button" id="initButton" type="button">sit init</button>
+        <button class="primary-button" id="diffButton" type="button">sit diff</button>
+        <button class="ghost-button" id="sampleButton" type="button">换一组样例</button>
+        <button class="ghost-button" id="resetButton" type="button">重置状态</button>
+      </div>
+    </aside>
+
+    <section class="main">
+      <div class="metrics" aria-label="summary metrics">
+        <div class="metric">
+          <span>Package</span>
+          <strong id="metricPackage">未初始化</strong>
+          <small id="metricPackageNote">等待 sit init</small>
+        </div>
+        <div class="metric">
+          <span>Diff risk</span>
+          <strong id="metricRisk" class="tone-info">draft</strong>
+          <small id="metricRiskNote">暂无变更信号</small>
+        </div>
+        <div class="metric">
+          <span>Version bump</span>
+          <strong id="metricBump" class="tone-info">-</strong>
+          <small id="metricBumpNote">由语义 diff 推导</small>
+        </div>
+        <div class="metric">
+          <span>Golden tests</span>
+          <strong id="metricTests" class="tone-info">-</strong>
+          <small id="metricTestsNote">初始化后生成草稿</small>
+        </div>
+      </div>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Skill Package</h3>
+          <span id="packageSubtitle">运行 sit init 后生成</span>
+        </div>
+        <div id="packageEmpty" class="empty">等待第一版 prompt 初始化。</div>
+        <div id="packageView" class="package-grid" hidden>
+          <div class="tree">
+            <p class="tree-title">package tree</p>
+            <div class="tree-list" id="treeList"></div>
+          </div>
+          <div class="file-view">
+            <div class="file-tabs" id="fileTabs"></div>
+            <pre class="code-block" id="fileContent"></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="diff-grid">
+        <section class="panel">
+          <div class="panel-head">
+            <h3>Prompt Diff</h3>
+            <span id="diffSubtitle">运行 sit diff 后展示</span>
+          </div>
+          <div id="diffEmpty" class="empty">第二版 prompt 会在这里展开为逐行 diff。</div>
+          <div id="diffLines" class="diff-lines" hidden></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head">
+            <h3>Semantic Events</h3>
+            <span id="eventSubtitle">0 events</span>
+          </div>
+          <div id="eventsEmpty" class="empty">SitHub 会把文本变化压缩成评审信号。</div>
+          <div id="eventList" class="event-list" hidden></div>
+        </section>
+      </section>
+
+      <section class="lower-grid">
+        <section class="terminal">
+          <div class="panel-head">
+            <h3>Command Output</h3>
+            <span>local loop</span>
+          </div>
+          <pre class="terminal-body" id="terminalOutput"><span class="cmd">$ sit init</span>
+等待输入...</pre>
+        </section>
+        <section class="report">
+          <div class="panel-head">
+            <h3>PR Summary</h3>
+            <span id="reportSubtitle">not generated</span>
+          </div>
+          <div class="report-body" id="reportBody">
+            <div class="empty">运行 sit diff 后生成评审摘要。</div>
+          </div>
+        </section>
+      </section>
+    </section>
+  </section>
+</main>
+
+<script>
+const samples = [
+  {
+    name: "meeting-action-extractor",
+    v1: `你是会议纪要助手。
+读取会议记录，提取待办事项。
+输出 JSON，字段包括 action_items 和 owner。
+只输出明确出现的任务。`,
+    v2: `你是会议纪要助手。
+读取会议记录，提取待办事项。
+输出 JSON，字段包括 action_items、owner、deadline、priority 和 evidence。
+deadline 必须来自会议原文，缺失时返回 null。
+priority 只能是 high、medium、low。
+只输出明确出现的任务。`
+  },
+  {
+    name: "paper-taxonomy-mapper",
+    v1: `你是论文分类助手。
+读取论文标题和摘要，判断它属于哪个研究领域。
+输出 JSON，字段包括 title 和 category。
+分类必须简洁，不要编造论文中不存在的信息。`,
+    v2: `你是论文分类助手。
+读取论文标题和摘要，判断它属于哪个研究领域。
+输出 JSON，字段包括 title、category、research_area、evidence 和 confidence。
+evidence 必须引用摘要中的依据，confidence 使用 0 到 1 的数字。
+如果证据不足，confidence 不得高于 0.6。
+分类必须简洁，不要编造论文中不存在的信息。`
+  },
+  {
+    name: "bug-triage-skill",
+    v1: `你是缺陷分诊助手。
+读取 issue 标题和正文，判断严重程度。
+输出 JSON，字段包括 severity 和 summary。
+不要推断用户没有提供的信息。`,
+    v2: `你是缺陷分诊助手。
+读取 issue 标题、正文和日志，判断严重程度。
+输出 JSON，字段包括 severity、summary、component、reproduction_steps 和 confidence。
+reproduction_steps 必须按数组输出。
+当日志中出现崩溃或数据丢失时 severity 必须为 critical。
+不要推断用户没有提供的信息。`
+  }
+];
+
+let state = {
+  initialized: false,
+  diffed: false,
+  activeFile: "skill.yaml",
+  files: {},
+  diff: [],
+  events: []
+};
+
+const els = {
+  skillName: document.querySelector("#skillName"),
+  v1Prompt: document.querySelector("#v1Prompt"),
+  v2Prompt: document.querySelector("#v2Prompt"),
+  initButton: document.querySelector("#initButton"),
+  diffButton: document.querySelector("#diffButton"),
+  sampleButton: document.querySelector("#sampleButton"),
+  resetButton: document.querySelector("#resetButton"),
+  runStatus: document.querySelector("#runStatus"),
+  metricPackage: document.querySelector("#metricPackage"),
+  metricPackageNote: document.querySelector("#metricPackageNote"),
+  metricRisk: document.querySelector("#metricRisk"),
+  metricRiskNote: document.querySelector("#metricRiskNote"),
+  metricBump: document.querySelector("#metricBump"),
+  metricBumpNote: document.querySelector("#metricBumpNote"),
+  metricTests: document.querySelector("#metricTests"),
+  metricTestsNote: document.querySelector("#metricTestsNote"),
+  packageEmpty: document.querySelector("#packageEmpty"),
+  packageView: document.querySelector("#packageView"),
+  packageSubtitle: document.querySelector("#packageSubtitle"),
+  treeList: document.querySelector("#treeList"),
+  fileTabs: document.querySelector("#fileTabs"),
+  fileContent: document.querySelector("#fileContent"),
+  diffEmpty: document.querySelector("#diffEmpty"),
+  diffLines: document.querySelector("#diffLines"),
+  diffSubtitle: document.querySelector("#diffSubtitle"),
+  eventsEmpty: document.querySelector("#eventsEmpty"),
+  eventList: document.querySelector("#eventList"),
+  eventSubtitle: document.querySelector("#eventSubtitle"),
+  terminalOutput: document.querySelector("#terminalOutput"),
+  reportBody: document.querySelector("#reportBody"),
+  reportSubtitle: document.querySelector("#reportSubtitle")
+};
+
+function slugify(value) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "demo-skill";
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function normalizePrompt(value) {
+  return value.replace(/\r\n/g, "\n").trim();
+}
+
+function splitFields(prompt) {
+  const fieldLine = prompt
+    .split(/\n/)
+    .find(line => /字段包括|fields include|输出.*json/i.test(line)) || "";
+  const normalized = fieldLine
+    .replace(/[，、]/g, ",")
+    .replace(/ 和 /g, ",")
+    .replace(/\band\b/g, ",");
+  const matches = normalized.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
+  const ignored = new Set(["JSON", "json", "fields", "include"]);
+  return [...new Set(matches.filter(item => !ignored.has(item)))];
+}
+
+function detectConstraints(prompt) {
+  return prompt
+    .split(/\n/)
+    .map(line => line.trim())
+    .filter(line => /必须|不得|只能|不要|缺失|confidence|severity/.test(line));
+}
+
+function buildSchema(fields) {
+  const props = {};
+  fields.forEach(field => {
+    let type = "string";
+    if (/confidence|score/.test(field)) type = "number";
+    if (/items|steps/.test(field)) type = "array";
+    props[field] = type === "array" ? { type, items: { type: "string" } } : { type };
+  });
+  return JSON.stringify({
+    type: "object",
+    required: fields.slice(0, Math.max(1, Math.min(fields.length, 3))),
+    properties: props
+  }, null, 2);
+}
+
+function buildFiles() {
+  const name = slugify(els.skillName.value);
+  const prompt = normalizePrompt(els.v1Prompt.value);
+  const fields = splitFields(prompt);
+  const firstFields = fields.length ? fields : ["result"];
+  return {
+    "skill.yaml": `name: ${name}
+version: 0.1.0
+description: Generated from the first prompt draft
+prompts:
+  system: prompts/system.md
+schemas:
+  input: schemas/input.schema.json
+  output: schemas/output.schema.json
+tests:
+  golden: tests/golden.jsonl
+commands:
+  validate: sit validate
+  test: sit test`,
+    "prompts/system.md": prompt,
+    "schemas/input.schema.json": JSON.stringify({
+      type: "object",
+      required: ["input"],
+      properties: {
+        input: { type: "string" }
+      }
+    }, null, 2),
+    "schemas/output.schema.json": buildSchema(firstFields),
+    "tests/golden.jsonl": JSON.stringify({
+      id: "case-001",
+      input: { input: "Example source text" },
+      expected: Object.fromEntries(firstFields.map(field => [field, `<${field}>`])),
+      match: "partial"
+    }),
+    ".github/workflows/sit.yml": `name: sit
+on: [pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sit validate
+      - run: sit test
+      - run: sit pr-summary --format markdown`
+  };
+}
+
+function computeLineDiff(before, after) {
+  const oldLines = normalizePrompt(before).split(/\n/);
+  const newLines = normalizePrompt(after).split(/\n/);
+  const rows = [];
+  const max = Math.max(oldLines.length, newLines.length);
+  for (let index = 0; index < max; index += 1) {
+    const oldLine = oldLines[index];
+    const newLine = newLines[index];
+    if (oldLine === newLine && oldLine !== undefined) {
+      rows.push({ type: "same", value: oldLine });
+    } else {
+      if (oldLine !== undefined) rows.push({ type: "del", value: oldLine });
+      if (newLine !== undefined) rows.push({ type: "add", value: newLine });
+    }
+  }
+  return rows;
+}
+
+function computeEvents() {
+  const before = normalizePrompt(els.v1Prompt.value);
+  const after = normalizePrompt(els.v2Prompt.value);
+  const beforeFields = splitFields(before);
+  const afterFields = splitFields(after);
+  const addedFields = afterFields.filter(field => !beforeFields.includes(field));
+  const removedFields = beforeFields.filter(field => !afterFields.includes(field));
+  const beforeConstraints = detectConstraints(before);
+  const afterConstraints = detectConstraints(after);
+  const addedConstraints = afterConstraints.filter(line => !beforeConstraints.includes(line));
+  const events = [];
+
+  events.push({
+    risk: "review",
+    tag: "PROMPT",
+    title: "prompts/system.md changed",
+    desc: `${computeLineDiff(before, after).filter(row => row.type !== "same").length} changed lines require behavior review.`
+  });
+
+  if (addedFields.length) {
+    events.push({
+      risk: addedFields.length >= 3 ? "breaking" : "minor",
+      tag: "SCHEMA",
+      title: `Output fields added: ${addedFields.join(", ")}`,
+      desc: "New required-looking output fields may break downstream consumers unless versioned intentionally."
+    });
+  }
+  if (removedFields.length) {
+    events.push({
+      risk: "breaking",
+      tag: "SCHEMA",
+      title: `Output fields removed: ${removedFields.join(", ")}`,
+      desc: "Removing output fields is treated as a breaking schema change."
+    });
+  }
+  if (addedConstraints.length) {
+    events.push({
+      risk: "review",
+      tag: "BEHAVIOR",
+      title: `${addedConstraints.length} behavior constraints added`,
+      desc: addedConstraints.slice(0, 2).join(" / ")
+    });
+  }
+  if (!addedFields.length && !removedFields.length && !addedConstraints.length) {
+    events.push({
+      risk: "minor",
+      tag: "TEXT",
+      title: "Prompt wording changed only",
+      desc: "No output field change detected; run golden cases to confirm behavior stability."
+    });
+  }
+  return events;
+}
+
+function highestRisk(events) {
+  if (events.some(event => event.risk === "breaking")) return "breaking";
+  if (events.some(event => event.risk === "review")) return "review";
+  if (events.some(event => event.risk === "minor")) return "minor";
+  return "info";
+}
+
+function suggestedBump(risk) {
+  if (risk === "breaking") return "major";
+  if (risk === "review" || risk === "minor") return "minor";
+  return "patch";
+}
+
+function setSteps() {
+  document.querySelectorAll(".state-step").forEach(step => {
+    step.classList.remove("active", "done");
+  });
+  const draftStep = document.querySelector('[data-step="draft"]');
+  const initStep = document.querySelector('[data-step="init"]');
+  const diffStep = document.querySelector('[data-step="diff"]');
+  draftStep.classList.add(state.initialized ? "done" : "active");
+  if (state.initialized) initStep.classList.add(state.diffed ? "done" : "active");
+  if (state.diffed) diffStep.classList.add("active");
+}
+
+function renderPackage() {
+  const names = Object.keys(state.files);
+  els.packageEmpty.hidden = state.initialized;
+  els.packageView.hidden = !state.initialized;
+  if (!state.initialized) return;
+  els.packageSubtitle.textContent = `${names.length} files generated`;
+  els.treeList.innerHTML = names.map(name => `
+    <button class="tree-item ${name === state.activeFile ? "active" : ""}" type="button" data-file="${escapeHtml(name)}">
+      <span>file</span><span>${escapeHtml(name)}</span>
+    </button>
+  `).join("");
+  els.fileTabs.innerHTML = names.map(name => `
+    <button class="tab-button ${name === state.activeFile ? "active" : ""}" type="button" data-file="${escapeHtml(name)}">${escapeHtml(name)}</button>
+  `).join("");
+  els.fileContent.textContent = state.files[state.activeFile] || "";
+  document.querySelectorAll("[data-file]").forEach(button => {
+    button.addEventListener("click", () => {
+      state.activeFile = button.dataset.file;
+      renderPackage();
+    });
+  });
+}
+
+function renderDiff() {
+  els.diffEmpty.hidden = state.diffed;
+  els.diffLines.hidden = !state.diffed;
+  if (!state.diffed) return;
+  els.diffSubtitle.textContent = `${state.diff.filter(row => row.type !== "same").length} changed lines`;
+  els.diffLines.innerHTML = state.diff.map(row => {
+    const sign = row.type === "add" ? "+" : row.type === "del" ? "-" : " ";
+    return `<div class="diff-line diff-${row.type}"><span>${sign}</span><code>${escapeHtml(row.value)}</code></div>`;
+  }).join("");
+}
+
+function renderEvents() {
+  els.eventsEmpty.hidden = state.diffed;
+  els.eventList.hidden = !state.diffed;
+  els.eventSubtitle.textContent = `${state.events.length} events`;
+  if (!state.diffed) return;
+  els.eventList.innerHTML = state.events.map(event => `
+    <article class="event-row" data-risk="${escapeHtml(event.risk)}">
+      <div class="event-bar"></div>
+      <div class="event-body">
+        <div class="event-meta">
+          <span class="tag ${escapeHtml(event.risk)}">${escapeHtml(event.risk)}</span>
+          <span class="tag info">${escapeHtml(event.tag)}</span>
+        </div>
+        <div class="event-title">${escapeHtml(event.title)}</div>
+        <div class="event-desc">${escapeHtml(event.desc)}</div>
+      </div>
+    </article>
+  `).join("");
+}
+
+function renderTerminal(mode) {
+  const name = slugify(els.skillName.value);
+  if (mode === "init") {
+    els.terminalOutput.innerHTML = `<span class="cmd">$ sit init ${escapeHtml(name)}</span>
+<span class="ok">created</span> skill.yaml
+<span class="ok">created</span> prompts/system.md
+<span class="ok">created</span> schemas/input.schema.json
+<span class="ok">created</span> schemas/output.schema.json
+<span class="ok">created</span> tests/golden.jsonl
+<span class="ok">ok</span> package initialized at version 0.1.0`;
+    return;
+  }
+  if (mode === "diff") {
+    const risk = highestRisk(state.events);
+    const bump = suggestedBump(risk);
+    const warning = risk === "breaking" ? "<span class=\"warn\">version gate:</span> major bump required" : "<span class=\"warn\">version gate:</span> minor bump recommended";
+    els.terminalOutput.innerHTML = `<span class="cmd">$ sit diff v0.1.0..working --prompt</span>
+risk: ${escapeHtml(risk)}
+suggested_version_bump: ${escapeHtml(bump)}
+events: ${state.events.length}
+${warning}
+
+<span class="cmd">$ sit pr-summary --format markdown</span>
+generated review summary for ${escapeHtml(name)}`;
+    return;
+  }
+  els.terminalOutput.innerHTML = `<span class="cmd">$ sit init</span>
+等待输入...`;
+}
+
+function renderReport() {
+  if (!state.diffed) {
+    els.reportSubtitle.textContent = "not generated";
+    els.reportBody.innerHTML = `<div class="empty">运行 sit diff 后生成评审摘要。</div>`;
+    return;
+  }
+  const risk = highestRisk(state.events);
+  const bump = suggestedBump(risk);
+  const addedFields = splitFields(els.v2Prompt.value).filter(field => !splitFields(els.v1Prompt.value).includes(field));
+  els.reportSubtitle.textContent = "generated";
+  els.reportBody.innerHTML = `
+    <div class="report-line"><span>Summary</span><span>${escapeHtml(slugify(els.skillName.value))} prompt updated from v0.1.0 working draft.</span></div>
+    <div class="report-line"><span>Risk</span><span>${escapeHtml(risk)}</span></div>
+    <div class="report-line"><span>Version gate</span><span>Recommended bump: ${escapeHtml(bump)}</span></div>
+    <div class="report-line"><span>Schema signal</span><span>${escapeHtml(addedFields.length ? `Added ${addedFields.join(", ")}` : "No output field addition detected")}</span></div>
+    <div class="report-line"><span>Reviewer focus</span><span>Check downstream JSON consumers, update golden cases, and verify behavior constraints.</span></div>
+  `;
+}
+
+function renderMetrics() {
+  const name = slugify(els.skillName.value);
+  els.metricPackage.textContent = state.initialized ? name : "未初始化";
+  els.metricPackageNote.textContent = state.initialized ? "standard package ready" : "等待 sit init";
+  els.metricTests.textContent = state.initialized ? "1 draft" : "-";
+  els.metricTestsNote.textContent = state.initialized ? "partial match golden case" : "初始化后生成草稿";
+  if (!state.diffed) {
+    els.metricRisk.textContent = state.initialized ? "clean" : "draft";
+    els.metricRisk.className = state.initialized ? "tone-pass" : "tone-info";
+    els.metricRiskNote.textContent = state.initialized ? "尚未比较 v2" : "暂无变更信号";
+    els.metricBump.textContent = "-";
+    els.metricBump.className = "tone-info";
+    els.metricBumpNote.textContent = "由语义 diff 推导";
+    return;
+  }
+  const risk = highestRisk(state.events);
+  const bump = suggestedBump(risk);
+  els.metricRisk.textContent = risk;
+  els.metricRisk.className = risk === "breaking" ? "tone-fail" : risk === "review" ? "tone-warn" : "tone-info";
+  els.metricRiskNote.textContent = `${state.events.length} semantic events`;
+  els.metricBump.textContent = bump;
+  els.metricBump.className = bump === "major" ? "tone-fail" : "tone-warn";
+  els.metricBumpNote.textContent = bump === "major" ? "required before release" : "recommended before release";
+}
+
+function renderAll(mode) {
+  els.runStatus.textContent = state.diffed ? "diff ready" : state.initialized ? "initialized" : "draft";
+  setSteps();
+  renderMetrics();
+  renderPackage();
+  renderDiff();
+  renderEvents();
+  renderReport();
+  renderTerminal(mode);
+}
+
+function runInit() {
+  state.initialized = true;
+  state.diffed = false;
+  state.files = buildFiles();
+  state.activeFile = "skill.yaml";
+  state.diff = [];
+  state.events = [];
+  renderAll("init");
+}
+
+function runDiff() {
+  if (!state.initialized) runInit();
+  state.diffed = true;
+  state.diff = computeLineDiff(els.v1Prompt.value, els.v2Prompt.value);
+  state.events = computeEvents();
+  renderAll("diff");
+}
+
+function resetDemo() {
+  state = {
+    initialized: false,
+    diffed: false,
+    activeFile: "skill.yaml",
+    files: {},
+    diff: [],
+    events: []
+  };
+  renderAll("reset");
+}
+
+function rotateSample() {
+  const current = slugify(els.skillName.value);
+  const index = samples.findIndex(sample => sample.name === current);
+  const next = samples[(index + 1 + samples.length) % samples.length];
+  els.skillName.value = next.name;
+  els.v1Prompt.value = next.v1;
+  els.v2Prompt.value = next.v2;
+  resetDemo();
+}
+
+els.initButton.addEventListener("click", runInit);
+els.diffButton.addEventListener("click", runDiff);
+els.resetButton.addEventListener("click", resetDemo);
+els.sampleButton.addEventListener("click", rotateSample);
+[els.skillName, els.v1Prompt, els.v2Prompt].forEach(input => {
+  input.addEventListener("input", () => {
+    if (state.initialized || state.diffed) resetDemo();
+  });
+});
+
+renderAll("reset");
+</script>
+</body>
+</html>
