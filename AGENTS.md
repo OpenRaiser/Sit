@@ -4,10 +4,10 @@ This folder is the working space for SitHub and its local CLI, `sit`.
 
 Before doing any work in this folder, agents must:
 
-1. Read `00_项目枢纽.md`.
+1. Read `docs/internal/00_项目枢纽.md`.
 2. Add a short entry to the "当前处理摘要" section describing the intended action before making changes.
 3. Execute the action.
-4. Update `00_项目枢纽.md` with any new files, decisions, validation results, or unresolved questions.
+4. Update `docs/internal/00_项目枢纽.md` with any new files, decisions, validation results, or unresolved questions.
 
 The hub file is the first retrieval target for this project. Keep it current and concise.
 Do not read `docs/history/` by default. Only open history archives when you need to trace a specific decision, PR, bug, or the user explicitly asks for historical detail.
@@ -77,17 +77,17 @@ When adding or modifying implementation files:
 1. Keep changes scoped to the `sit` CLI, Skill Package examples, or project documentation.
 2. Keep generated outputs under explicit report/output paths.
 3. Do not delete design docs, reports, schemas, prompts, or golden tests to make validation pass.
-4. If a test or schema becomes obsolete, record the reason in `00_项目枢纽.md` before changing it.
+4. If a test or schema becomes obsolete, record the reason in `docs/internal/00_项目枢纽.md` before changing it.
 5. Prefer small, inspectable CLI behavior over platform features. Do not start SitHub Web until the local control loop works.
 
 ## Validation Expectations
 
 For project documentation changes:
 
-- Check that `AGENTS.md` and `00_项目枢纽.md` agree on current scope.
+- Check that `AGENTS.md` and `docs/internal/00_项目枢纽.md` agree on current scope.
 - Check that referenced paths exist when possible.
 
 For future CLI changes:
 
 - Run the relevant command against the local example Skill Packages under `examples/`.
-- Record command outcomes in `00_项目枢纽.md`.
+- Record command outcomes in `docs/internal/00_项目枢纽.md`.
