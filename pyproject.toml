@@ -39,6 +39,9 @@ dev = [
 binary = [
   "pyinstaller>=6.0",
 ]
+mcp = [
+  "mcp>=1.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/OpenRaiser/SitHub"
@@ -48,6 +51,7 @@ Issues = "https://github.com/OpenRaiser/SitHub/issues"
 
 [project.scripts]
 sit = "sit.cli:main"
+sit-mcp-server = "sit.mcp_server:main"
 
 [tool.setuptools]
 packages = ["sit"]

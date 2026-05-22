@@ -120,6 +120,60 @@ sit test "$SIT_PACKAGE_DIR" --run
 sit ci-summary "$SIT_PACKAGE_DIR" --compare origin/main..HEAD >> "$GITHUB_STEP_SUMMARY"
 ```
 
+## Agent Integration
+
+`sit` can be called by AI agents in three ways:
+
+### Python SDK
+
+```python
+from sit.sdk import Sit
+
+s = Sit("./my-skill-package")
+info = s.info()          # sit.info.v1 contract
+test = s.test()          # sit.test.v1 contract
+diff = s.diff("./old")   # sit.diff.v1 contract
+pr = s.pr_summary("./old")  # sit.pr_summary.v1 contract
+report = s.report(compare="./old")  # sit.report.v1 contract
+```
+
+### MCP Server
+
+Install with MCP support and run the stdio server:
+
+```bash
+pip install 'sit-toolkit[mcp]'
+sit-mcp-server
+```
+
+Or configure in your MCP client (e.g., Claude Desktop):
+
+```json
+{
+  "mcpServers": {
+    "sit": {
+      "command": "sit-mcp-server"
+    }
+  }
+}
+```
+
+Exposes 7 tools: `sit_info`, `sit_validate`, `sit_test`, `sit_diff`, `sit_pr_summary`, `sit_report`, `sit_doctor`.
+
+### LLM Tool-Use Schema
+
+```python
+from sit.tool_use import get_tools_openai, get_tools_anthropic
+
+# For OpenAI
+tools = get_tools_openai()
+response = client.chat_completion(messages=..., tools=tools)
+
+# For Anthropic Claude
+tools = get_tools_anthropic()
+response = client.messages.create(messages=..., tools=tools)
+```
+
 ## Research
 
 `sit` has been validated through multi-agent experiments on AI Skill packaging workflows. See:
