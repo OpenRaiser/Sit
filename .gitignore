@@ -9,6 +9,10 @@ dist/
 build/
 experiments/runs/
 
+# Node / VS Code extension
+node_modules/
+*.vsix
+
 # macOS metadata
 ._*
 .DS_Store

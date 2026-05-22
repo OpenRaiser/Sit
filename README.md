@@ -209,4 +209,4 @@ Multi-agent experiment driver:
 
 ## License
 
-MIT
+Apache-2.0. See [LICENSE](LICENSE).
