@@ -81,7 +81,7 @@ agent 时代缺的就是这一层。本工作要回答的核心问题是：
 - **训练步数**：T = 1000 step，N ∈ {2, 4, 8}。
 - **重复次数**：每个 condition 重复 5 个 random seed。
 
-### 5.2 实验顺序与就绪度（按 `docs/sit-multi-agent-mapping.md` 评估）
+### 5.2 实验顺序与就绪度（按 `docs/research/sit-multi-agent-mapping.md` 评估）
 
 
 | 顺序  | 实验               | 就绪度                        | 主要风险                      |
@@ -197,7 +197,7 @@ agent 时代缺的就是这一层。本工作要回答的核心问题是：
 
 ## 8. 实施计划
 
-按 `docs/sit-multi-agent-mapping.md` 第 5 节路线，分三阶段：
+按 `docs/research/sit-multi-agent-mapping.md` 第 5 节路线，分三阶段：
 
 **阶段 1（2 周）：基础设施完备化**
 
@@ -251,7 +251,7 @@ agent 时代缺的就是这一层。本工作要回答的核心问题是：
 | 内部文档                              | 对接点                                                   |
 | --------------------------------- | ----------------------------------------------------- |
 | `docs/plan.md`                    | 现有实验骨架与初步相关工作梳理；本提案在其上补强 motivation、baseline 与 metric |
-| `docs/sit-multi-agent-mapping.md` | 第 4 节"主要贡献"和第 5 节"实验顺序"直接引用                           |
+| `docs/research/sit-multi-agent-mapping.md` | 第 4 节"主要贡献"和第 5 节"实验顺序"直接引用                           |
 | `docs/internal/00_项目枢纽.md`        | sit CLI 当前状态、F1–F13 已完成基线在 system 章节复用                |
 | `reports/project_report.md`       | 系统架构图、代码规模、试点证据复用到论文 method/system 章节                 |
 

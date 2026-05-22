@@ -1,159 +1,98 @@
-# SitHub / sit
+# sit
 
-`sit` is a Git-native CLI for versioning AI Skill packages: prompts, schemas, golden tests, runners, reports, and release artifacts.
+**Git-native versioning for AI Skill packages.**
 
-Git records file changes. `sit` adds the semantic layer reviewers need:
+`sit` adds a semantic layer on top of Git for AI Skills — prompts, schemas, golden tests, runners, and release artifacts. It classifies changes by risk, generates reviewer-ready diffs, and gates commits and releases.
 
-- output schema changes are classified as breaking or review-required;
-- prompt/reference changes get text summaries and optional unified diff;
-- scripts, assets, and references are visible in semantic diff;
-- golden tests can run statically or through a configured runner;
-- commit/release gates check whether the version bump matches the change risk;
-- PR, CI, HTML, and release reports are generated from the same payloads.
+## Why sit?
+
+| | Pure Git | sit |
+|---|---|---|
+| Prompt change | `+13 -2` lines | "Prompt changed (+13 -2); headings: Core Rule, Workflow" |
+| Schema update | raw JSON diff | "breaking" vs "review-required" classification |
+| Golden tests | manual or none | `sit test .` runs stored cases; `--run` calls your runner |
+| Version bump | gut feeling | risk-based gate: patch/minor/major suggested by change type |
+| PR review | read every file | `sit pr-summary` generates structured Markdown |
 
 ## Install
 
-From this repository:
+```bash
+pip install sit-toolkit
+sit --version
+```
+
+Python 3.10+ required. Or install from source:
 
 ```bash
 git clone https://github.com/OpenRaiser/SitHub.git
 cd SitHub
-python3 -m pip install -e .
-sit --version
+pip install -e .
 ```
-
-For local development without installing:
-
-```bash
-python3 -m sit.cli --version
-```
-
-Python 3.10+ is required.
 
 ## Quick Start
 
-Create a new Skill package:
-
 ```bash
+# Create a new Skill package
 sit init my-skill
 cd my-skill
-```
 
-Standardize an existing prompt or `SKILL.md` project:
-
-```bash
-cd /path/to/existing-prompt-project
+# Or standardize an existing project
+cd /path/to/existing-project
 sit standardize .
-```
 
-Validate and test:
-
-```bash
+# Validate and test
 sit validate .
 sit test .
-```
 
-Compare a Git range:
-
-```bash
+# See what changed
 sit diff HEAD~1..HEAD
-sit diff HEAD~1..HEAD --prompt
-```
 
-Generate reviewer output:
-
-```bash
+# Generate a PR summary
 sit pr-summary HEAD~1..HEAD
-sit report . --compare HEAD~1..HEAD --format html -o reports/review.html
-sit ci-summary . --compare HEAD~1..HEAD
-```
 
-Release a version:
-
-```bash
+# Release with a version gate
 sit release minor . --bundle
 ```
 
+## Commands
+
+| Command | What it does |
+|---|---|
+| `sit init <name>` | Create a new Skill package |
+| `sit standardize .` | Convert an existing project into a standard Skill package |
+| `sit onboard .` | Conservatively add sit files to a `SKILL.md` project |
+| `sit doctor .` | Check onboarding readiness |
+| `sit validate .` | Validate manifest, schemas, and golden cases |
+| `sit test .` | Run golden tests |
+| `sit test . --run` | Run cases through your configured runner |
+| `sit diff A..B` | Semantic diff for Git refs |
+| `sit diff A..B --prompt` | Include prompt/reference text diff |
+| `sit pr-summary A..B` | Generate PR-ready Markdown |
+| `sit report . --compare A..B` | Generate Markdown/JSON/HTML report |
+| `sit ci-summary . --compare A..B` | Generate GitHub Actions summary |
+| `sit deps check .` | Check `deps.yaml` dependencies |
+| `sit commit -m "..."` | Validate/test/version-gate before commit |
+| `sit release minor . --bundle` | Bump version, tag, and write release bundle |
+
+Git passthrough: `sit add`, `sit push`, `sit pull`, `sit branch`, `sit checkout`, `sit log`.
+
 ## Package Layout
 
-Typical package:
-
-```text
+```
 my-skill/
-  skill.yaml
-  prompts/
-    system.md
-  schemas/
-    input.schema.json
-    output.schema.json
-  tests/
-    golden.jsonl
-  scripts/
-    run_case.py
-  assets/
-  references/
-  reports/
+  skill.yaml              # manifest
+  prompts/system.md       # prompt files
+  schemas/                # input/output JSON schemas
+  tests/golden.jsonl      # golden test cases
+  scripts/run_case.py     # optional runner
+  assets/                 # scanned by semantic diff
+  references/             # scanned by semantic diff
   CHANGELOG.md
 ```
 
-Minimal `skill.yaml`:
-
-```yaml
-name: my-skill
-version: 0.1.0
-status: active
-description: Short description.
-
-prompts:
-  system: prompts/system.md
-
-schemas:
-  input: schemas/input.schema.json
-  output: schemas/output.schema.json
-
-tests:
-  golden: tests/golden.jsonl
-
-commands:
-  run_case: "python3 scripts/run_case.py --input {input} --output {output}"
-```
-
-`scripts/`, `assets/`, and `references/` are scanned by semantic diff when present.
-`status` defaults to `active`; set it to `deprecated` or `retired` when a Skill is being phased out so diff and dependency checks can warn reviewers.
-
-## Core Commands
-
-| Command | Purpose |
-|---|---|
-| `sit init <name>` | Create a new Skill package. |
-| `sit standardize .` | Convert an existing prompt or `SKILL.md` project into a standard Skill package. |
-| `sit onboard .` | Conservatively add SitHub files to an existing `SKILL.md` project. |
-| `sit doctor .` | Check onboarding readiness. |
-| `sit info . --format json` | Inspect package, Git, validation, tests, and reports. |
-| `sit validate .` | Validate manifest paths, schemas, and golden cases. |
-| `sit test .` | Run golden tests against stored expected/actual values. |
-| `sit test . --run` | Run each golden case through `commands.run_case`. |
-| `sit diff A..B` | Semantic diff for Git refs. |
-| `sit diff A..B --prompt` | Include prompt/reference unified text diff. |
-| `sit pr-summary A..B` | Generate PR-ready Markdown. |
-| `sit report . --compare A..B` | Generate Markdown/JSON/HTML report. |
-| `sit ci-summary . --compare A..B` | Generate GitHub Actions summary Markdown. |
-| `sit deps check .` | Check local `deps.yaml` dependencies. |
-| `sit commit -m "..."` | Validate/test/version-gate before Git commit. |
-| `sit release minor . --bundle` | Bump version, create release commit/tag, and write bundle. |
-
-Git passthrough commands are also available: `sit add`, `sit push`, `sit pull`, `sit branch`, `sit checkout`, and `sit log`.
-
-Machine-readable contracts for agent drivers and integrations are documented under `docs/schemas/`:
-
-- `sit.info.v1`
-- `sit.test.v1`
-- `sit.report.v1`
-- `sit.pr_summary.v1`
-
 ## Semantic Diff Example
 
-```text
+```
 Skill Diff
 Baseline: paper-webpage-builder@0.3.0
 Current: paper-webpage-builder@0.4.0
@@ -167,12 +106,12 @@ Suggested version bump: minor
   - SCRIPT changed scripts/scan_paper.py (review required; cover with runner or targeted tests)
 
 [reference]
-  - REFERENCE changed references/design_principles.md (+27 -3; headings: Design Principles, Fit the Paper, Avoid Template Cloning)
+  - REFERENCE changed references/design_principles.md (+27 -3; headings: Design Principles, Fit the Paper)
 ```
 
-## CI
+## CI Integration
 
-`sit init`, `sit standardize`, and `sit onboard` create a GitHub Actions workflow that can run:
+`sit init`, `sit standardize`, and `sit onboard` create a GitHub Actions workflow:
 
 ```bash
 sit validate "$SIT_PACKAGE_DIR"
@@ -181,31 +120,13 @@ sit test "$SIT_PACKAGE_DIR" --run
 sit ci-summary "$SIT_PACKAGE_DIR" --compare origin/main..HEAD >> "$GITHUB_STEP_SUMMARY"
 ```
 
-The CI summary and artifacts expose validation, golden test status, semantic diff risk, suggested version bump, and reproduce commands.
+## Research
 
-## Release Bundles
+`sit` has been validated through multi-agent experiments on AI Skill packaging workflows. See:
 
-```bash
-sit release patch . --bundle
-```
-
-The bundle includes package files, reports, `CHANGELOG.md`, `manifest.json` with sha256 entries, and `reproduce.sh`.
-
-## Pilot Material
-
-External trial kit:
-
-- `docs/pilots/external-trial-kit.md`
-- `docs/pilots/external-feedback-form.md`
-
-Real pilot walkthrough:
-
-- `docs/walkthrough.md`
-
-Multi-agent experiment driver:
-
-- `experiments/README.md`
-- `python3 experiments/driver.py --experiment h2 --condition all --steps 8 --bad-step 4 --seeds 0,1`
+- [Research proposal (H1-H4)](docs/research/proposal.md)
+- [Multi-agent mapping](docs/research/sit-multi-agent-mapping.md)
+- [H2 experiment results and analysis](experiments/)
 
 ## License
 

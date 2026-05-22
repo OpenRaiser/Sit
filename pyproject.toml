@@ -4,18 +4,48 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sit-toolkit"
-version = "0.19.0"
-description = "Skill Iteration Toolkit CLI for semantic validation and testing of Skill Packages."
+version = "0.20.0"
+description = "Git-native CLI for versioning AI Skill packages: prompts, schemas, golden tests, and release artifacts."
 requires-python = ">=3.10"
+license = "Apache-2.0"
+readme = "README.md"
+authors = [
+  { name = "OpenRaiser", email = "xuxinglong00423@163.com" },
+]
+keywords = ["ai", "skills", "prompt-engineering", "version-control", "cli", "llm"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Version Control :: Git",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
   "PyYAML>=5.4",
   "jsonschema>=4.0",
 ]
 
 [project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+  "build>=1.0",
+  "twine>=4.0",
+]
 binary = [
   "pyinstaller>=6.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/OpenRaiser/SitHub"
+Documentation = "https://github.com/OpenRaiser/SitHub#readme"
+Repository = "https://github.com/OpenRaiser/SitHub"
+Issues = "https://github.com/OpenRaiser/SitHub/issues"
 
 [project.scripts]
 sit = "sit.cli:main"
