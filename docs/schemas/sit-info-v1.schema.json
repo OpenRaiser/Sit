@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/OpenRaiser/SitHub/schemas/sit.info.v1",
+  "title": "sit.info.v1",
+  "description": "Structured package info produced by `sit info --format json`. Provides a snapshot of a skill package's manifest, git state, file structure, and validation status.",
+  "type": "object",
+  "required": ["schema_version", "package", "git", "files", "validation", "golden_tests", "reports"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "sit.info.v1"
+    },
+    "package": {
+      "type": "object",
+      "required": ["name", "version", "root", "manifest"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Skill package name from skill.yaml"
+        },
+        "version": {
+          "type": "string",
+          "description": "Semantic version from skill.yaml"
+        },
+        "description": {
+          "type": ["string", "null"],
+          "description": "Package description from skill.yaml"
+        },
+        "root": {
+          "type": "string",
+          "description": "Absolute path to the package root directory"
+        },
+        "manifest": {
+          "type": "string",
+          "description": "Absolute path to skill.yaml"
+        }
+      }
+    },
+    "git": {
+      "type": "object",
+      "required": ["available"],
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean",
+          "description": "Whether git is available and the package is in a git repo"
+        },
+        "root": {
+          "type": ["string", "null"],
+          "description": "Absolute path to the git repository root"
+        },
+        "branch": {
+          "type": ["string", "null"],
+          "description": "Current git branch name"
+        },
+        "commit": {
+          "type": ["string", "null"],
+          "description": "Short commit hash (7 chars)"
+        },
+        "dirty": {
+          "type": ["boolean", "null"],
+          "description": "Whether the working tree has uncommitted changes"
+        },
+        "changed_files_count": {
+          "type": ["integer", "null"],
+          "description": "Number of changed files in the working tree"
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "required": ["prompts", "schemas", "tests"],
+      "additionalProperties": false,
+      "properties": {
+        "prompts": {
+          "type": "object",
+          "description": "Map of prompt name to file info",
+          "additionalProperties": {
+            "$ref": "#/$defs/file_info"
+          }
+        },
+        "schemas": {
+          "type": "object",
+          "description": "Map of schema name to file info",
+          "additionalProperties": {
+            "$ref": "#/$defs/file_info"
+          }
+        },
+        "tests": {
+          "type": "object",
+          "description": "Map of test name to file info",
+          "additionalProperties": {
+            "$ref": "#/$defs/file_info"
+          }
+        }
+      }
+    },
+    "validation": {
+      "$ref": "#/$defs/validation_result"
+    },
+    "golden_tests": {
+      "type": "object",
+      "required": ["status", "ok"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pass", "fail", "skipped"]
+        },
+        "ok": {
+          "type": ["boolean", "null"],
+          "description": "null when skipped"
+        },
+        "passed": {
+          "type": ["integer", "null"],
+          "description": "Number of passed golden test cases"
+        },
+        "total": {
+          "type": ["integer", "null"],
+          "description": "Total number of golden test cases"
+        },
+        "summary": {
+          "type": ["string", "null"],
+          "description": "One-line summary (e.g. 'SUMMARY 2/2 golden cases passed')"
+        },
+        "messages": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "reports": {
+      "type": "object",
+      "required": ["exists"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": ["string", "null"],
+          "description": "Absolute path to the reports directory"
+        },
+        "exists": {
+          "type": "boolean",
+          "description": "Whether the reports directory exists"
+        },
+        "latest": {
+          "type": ["string", "null"],
+          "description": "Filename of the latest report, if any"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "file_info": {
+      "type": "object",
+      "required": ["path", "exists"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Absolute path to the file"
+        },
+        "exists": {
+          "type": "boolean",
+          "description": "Whether the file exists on disk"
+        }
+      }
+    },
+    "validation_result": {
+      "type": "object",
+      "required": ["status", "ok", "messages"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pass", "fail"]
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "messages": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ordered validation messages (OK/ERR/WARN prefixed)"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/OpenRaiser/SitHub/schemas/sit.pr_summary.v1",
+  "title": "sit.pr_summary.v1",
+  "description": "Structured PR summary produced by `sit pr-summary --format json`. Designed for machine consumption by AI agents to evaluate skill package changes.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "baseline",
+    "current",
+    "validation",
+    "golden_tests",
+    "risk",
+    "suggested_bump",
+    "diff",
+    "prompt_reference_summary"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "sit.pr_summary.v1"
+    },
+    "baseline": {
+      "$ref": "#/$defs/package_ref"
+    },
+    "current": {
+      "$ref": "#/$defs/package_ref"
+    },
+    "validation": {
+      "$ref": "#/$defs/validation_result"
+    },
+    "golden_tests": {
+      "$ref": "#/$defs/test_result"
+    },
+    "risk": {
+      "type": "string",
+      "enum": ["no-change", "review-required", "breaking-change"],
+      "description": "Overall risk assessment: no-change (safe), review-required (non-breaking changes), breaking-change (incompatible changes)"
+    },
+    "suggested_bump": {
+      "type": "string",
+      "enum": ["patch", "minor", "major"],
+      "description": "Recommended semver bump based on detected changes"
+    },
+    "diff": {
+      "$ref": "#/$defs/diff_result"
+    },
+    "prompt_reference_summary": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Human-readable summaries of prompt/reference text changes"
+    }
+  },
+  "$defs": {
+    "package_ref": {
+      "type": "object",
+      "required": ["name", "version", "root", "manifest"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Skill package name from skill.yaml"
+        },
+        "version": {
+          "type": "string",
+          "description": "Semantic version from skill.yaml"
+        },
+        "root": {
+          "type": "string",
+          "description": "Absolute path to the package root directory"
+        },
+        "manifest": {
+          "type": "string",
+          "description": "Absolute path to skill.yaml"
+        },
+        "source": {
+          "type": "string",
+          "description": "Git ref or label identifying this version (e.g. 'main', 'HEAD', 'v1.0.0')"
+        }
+      }
+    },
+    "validation_result": {
+      "type": "object",
+      "required": ["status", "ok", "messages"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pass", "fail"]
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "messages": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ordered validation messages (OK/ERR/WARN prefixed)"
+        }
+      }
+    },
+    "test_result": {
+      "type": "object",
+      "required": ["status", "ok", "messages"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pass", "fail", "skipped"]
+        },
+        "ok": {
+          "type": ["boolean", "null"],
+          "description": "null when skipped"
+        },
+        "messages": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "diff_result": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "old",
+        "new",
+        "changed",
+        "breaking",
+        "risk",
+        "suggested_bump",
+        "messages",
+        "events",
+        "text_diffs"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "sit.diff.v1"
+        },
+        "old": { "$ref": "#/$defs/package_ref" },
+        "new": { "$ref": "#/$defs/package_ref" },
+        "changed": {
+          "type": "boolean"
+        },
+        "breaking": {
+          "type": "boolean"
+        },
+        "risk": {
+          "type": "string",
+          "enum": ["no-change", "review-required", "breaking-change"]
+        },
+        "suggested_bump": {
+          "type": "string",
+          "enum": ["patch", "minor", "major"]
+        },
+        "messages": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "events": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/diff_event" }
+        },
+        "text_diffs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/text_diff" }
+        }
+      }
+    },
+    "diff_event": {
+      "type": "object",
+      "required": ["category", "severity", "changed", "breaking", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": ["package", "manifest", "status", "risk", "prompt", "schema", "test", "golden", "script", "asset", "reference"],
+          "description": "Type of change detected"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "changed", "breaking"]
+        },
+        "changed": {
+          "type": "boolean"
+        },
+        "breaking": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable event description"
+        },
+        "details": {
+          "type": "object",
+          "description": "Category-specific structured details (e.g. old/new values for status changes)",
+          "additionalProperties": true
+        }
+      }
+    },
+    "text_diff": {
+      "type": "object",
+      "required": ["kind", "name", "old_path", "new_path", "added_lines", "removed_lines", "headings", "variables", "summary"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["prompt", "reference"],
+          "description": "Type of text file changed"
+        },
+        "name": {
+          "type": "string",
+          "description": "File identifier (e.g. 'system')"
+        },
+        "old_path": {
+          "type": "string"
+        },
+        "new_path": {
+          "type": "string"
+        },
+        "added_lines": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "removed_lines": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "headings": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Markdown headings found in the new version"
+        },
+        "variables": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Template variables {var} found in the new version"
+        },
+        "summary": {
+          "type": "string",
+          "description": "One-line summary: '+N -M; headings: ...; vars: ...'"
+        }
+      }
+    }
+  }
+}
