@@ -1,98 +1,22 @@
 # sit
 
+[English](README.md) | [中文](README_zh.md)
+
 **Git-native versioning for AI Skill packages.**
 
-`sit` adds a semantic layer on top of Git for AI Skills — prompts, schemas, golden tests, runners, and release artifacts. It classifies changes by risk, generates reviewer-ready diffs, and gates commits and releases.
-
-## Why sit?
-
-| | Pure Git | sit |
-|---|---|---|
-| Prompt change | `+13 -2` lines | "Prompt changed (+13 -2); headings: Core Rule, Workflow" |
-| Schema update | raw JSON diff | "breaking" vs "review-required" classification |
-| Golden tests | manual or none | `sit test .` runs stored cases; `--run` calls your runner |
-| Version bump | gut feeling | risk-based gate: patch/minor/major suggested by change type |
-| PR review | read every file | `sit pr-summary` generates structured Markdown |
-
-## Install
+`sit` puts prompts, schemas, golden tests, and release artifacts under semantic version control. It knows what changed, classifies risk, and gates your commits and releases.
 
 ```bash
 pip install sit-toolkit
-sit --version
 ```
 
-Python 3.10+ required. Or install from source:
+## The problem
 
-```bash
-git clone https://github.com/OpenRaiser/SitHub.git
-cd SitHub
-pip install -e .
-```
-
-## Quick Start
-
-```bash
-# Create a new Skill package
-sit init my-skill
-cd my-skill
-
-# Or standardize an existing project
-cd /path/to/existing-project
-sit standardize .
-
-# Validate and test
-sit validate .
-sit test .
-
-# See what changed
-sit diff HEAD~1..HEAD
-
-# Generate a PR summary
-sit pr-summary HEAD~1..HEAD
-
-# Release with a version gate
-sit release minor . --bundle
-```
-
-## Commands
-
-| Command | What it does |
-|---|---|
-| `sit init <name>` | Create a new Skill package |
-| `sit standardize .` | Convert an existing project into a standard Skill package |
-| `sit onboard .` | Conservatively add sit files to a `SKILL.md` project |
-| `sit doctor .` | Check onboarding readiness |
-| `sit validate .` | Validate manifest, schemas, and golden cases |
-| `sit test .` | Run golden tests |
-| `sit test . --run` | Run cases through your configured runner |
-| `sit diff A..B` | Semantic diff for Git refs |
-| `sit diff A..B --prompt` | Include prompt/reference text diff |
-| `sit pr-summary A..B` | Generate PR-ready Markdown |
-| `sit report . --compare A..B` | Generate Markdown/JSON/HTML report |
-| `sit ci-summary . --compare A..B` | Generate GitHub Actions summary |
-| `sit deps check .` | Check `deps.yaml` dependencies |
-| `sit commit -m "..."` | Validate/test/version-gate before commit |
-| `sit release minor . --bundle` | Bump version, tag, and write release bundle |
-
-Git passthrough: `sit add`, `sit push`, `sit pull`, `sit branch`, `sit checkout`, `sit log`.
-
-## Package Layout
+When you version a prompt or schema with plain Git, you get `+13 -2` lines. You don't know if it's a typo fix or a breaking behavior change. `sit` does.
 
 ```
-my-skill/
-  skill.yaml              # manifest
-  prompts/system.md       # prompt files
-  schemas/                # input/output JSON schemas
-  tests/golden.jsonl      # golden test cases
-  scripts/run_case.py     # optional runner
-  assets/                 # scanned by semantic diff
-  references/             # scanned by semantic diff
-  CHANGELOG.md
-```
+$ sit diff v0.3.0..v0.4.0
 
-## Semantic Diff Example
-
-```
 Skill Diff
 Baseline: paper-webpage-builder@0.3.0
 Current: paper-webpage-builder@0.4.0
@@ -100,87 +24,109 @@ Risk: review-required
 Suggested version bump: minor
 
 [prompt]
-  - PROMPT changed skill: SKILL.md -> SKILL.md (+13 -2; headings: Paper Webpage Builder, Core Rule, Workflow)
+  - PROMPT changed SKILL.md (+13 -2; headings: Core Rule, Workflow)
 
 [script]
-  - SCRIPT changed scripts/scan_paper.py (review required; cover with runner or targeted tests)
+  - SCRIPT changed scripts/scan_paper.py (review required)
 
 [reference]
-  - REFERENCE changed references/design_principles.md (+27 -3; headings: Design Principles, Fit the Paper)
+  - REFERENCE changed references/design_principles.md (+27 -3)
 ```
 
-## CI Integration
-
-`sit init`, `sit standardize`, and `sit onboard` create a GitHub Actions workflow:
+## Quick start
 
 ```bash
-sit validate "$SIT_PACKAGE_DIR"
-sit test "$SIT_PACKAGE_DIR"
-sit test "$SIT_PACKAGE_DIR" --run
-sit ci-summary "$SIT_PACKAGE_DIR" --compare origin/main..HEAD >> "$GITHUB_STEP_SUMMARY"
+# New package
+sit init my-skill && cd my-skill
+
+# Existing project
+sit standardize .
+
+# Validate, test, review
+sit validate . && sit test .
+sit diff HEAD~1..HEAD
+sit pr-summary HEAD~1..HEAD
+
+# Release
+sit release minor . --bundle
 ```
 
-## Agent Integration
+## Commands
 
-`sit` can be called by AI agents in three ways:
+**Lifecycle:** `sit init`, `sit standardize`, `sit onboard`, `sit doctor`
 
-### Python SDK
+**Quality:** `sit validate`, `sit test`, `sit test --run`, `sit deps check`
+
+**Diff & Review:** `sit diff`, `sit pr-summary`, `sit report`, `sit ci-summary`
+
+**Release:** `sit commit`, `sit release`
+
+**Git passthrough:** `sit add`, `sit push`, `sit pull`, `sit branch`, `sit checkout`, `sit log`
+
+## Agent integration
+
+`sit` exposes its capabilities for AI agents via three interfaces:
+
+| Interface | Usage |
+|---|---|
+| **Python SDK** | `from sit.sdk import Sit` — direct API calls |
+| **MCP Server** | `pip install 'sit-toolkit[mcp]'` — 7 tools over stdio |
+| **LLM Tool-Use** | `from sit.tool_use import get_tools_openai` — OpenAI & Anthropic schemas |
+
+<details>
+<summary>Python SDK example</summary>
 
 ```python
 from sit.sdk import Sit
 
 s = Sit("./my-skill-package")
-info = s.info()          # sit.info.v1 contract
-test = s.test()          # sit.test.v1 contract
-diff = s.diff("./old")   # sit.diff.v1 contract
-pr = s.pr_summary("./old")  # sit.pr_summary.v1 contract
-report = s.report(compare="./old")  # sit.report.v1 contract
+s.info()            # package metadata
+s.validate()        # structure checks
+s.test()            # golden tests
+s.diff("./old")     # semantic diff
+s.pr_summary("./old")  # PR summary
+s.report(compare="./old")  # full report
 ```
+</details>
 
-### MCP Server
-
-Install with MCP support and run the stdio server:
+<details>
+<summary>MCP Server config</summary>
 
 ```bash
 pip install 'sit-toolkit[mcp]'
 sit-mcp-server
 ```
 
-Or configure in your MCP client (e.g., Claude Desktop):
-
 ```json
 {
   "mcpServers": {
-    "sit": {
-      "command": "sit-mcp-server"
-    }
+    "sit": { "command": "sit-mcp-server" }
   }
 }
 ```
+</details>
 
-Exposes 7 tools: `sit_info`, `sit_validate`, `sit_test`, `sit_diff`, `sit_pr_summary`, `sit_report`, `sit_doctor`.
-
-### LLM Tool-Use Schema
+<details>
+<summary>LLM Tool-Use schema</summary>
 
 ```python
 from sit.tool_use import get_tools_openai, get_tools_anthropic
 
-# For OpenAI
-tools = get_tools_openai()
-response = client.chat_completion(messages=..., tools=tools)
-
-# For Anthropic Claude
-tools = get_tools_anthropic()
-response = client.messages.create(messages=..., tools=tools)
+tools = get_tools_openai()      # OpenAI format
+tools = get_tools_anthropic()   # Anthropic format
 ```
+</details>
 
-## Research
+## CI integration
 
-`sit` has been validated through multi-agent experiments on AI Skill packaging workflows. See:
+`sit init` generates a GitHub Actions workflow that validates, tests, and posts a semantic summary to your PR:
 
-- [Research proposal (H1-H4)](docs/research/proposal.md)
-- [Multi-agent mapping](docs/research/sit-multi-agent-mapping.md)
-- [H2 experiment results and analysis](experiments/)
+```yaml
+- run: sit validate "$SIT_PACKAGE_DIR"
+- run: sit test "$SIT_PACKAGE_DIR"
+- run: sit test "$SIT_PACKAGE_DIR" --run
+- run: sit ci-summary "$SIT_PACKAGE_DIR" --compare origin/main..HEAD >> "$GITHUB_STEP_SUMMARY"
+```
 
 ## License
 
