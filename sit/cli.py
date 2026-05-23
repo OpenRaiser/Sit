@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
+from .agent_config import setup_agent_config, render_agent_setup_text
 from .ci import render_ci_summary
 from .deps import check_dependencies, dependency_warnings_for_commit, render_deps_text
 from .doctor import build_doctor_payload, render_doctor_text
@@ -92,13 +93,48 @@ def cmd_deps_check(args: argparse.Namespace) -> int:
 
 
 def cmd_onboard(args: argparse.Namespace) -> int:
+    root = Path(args.path).expanduser().resolve()
+    has_skill_yaml = (root / "skill.yaml").exists()
+    has_skill_md = (root / "SKILL.md").exists()
+
+    # --agent mode: add agent config to any package
+    if args.agent:
+        if has_skill_yaml:
+            # Already a sit package — just add agent config
+            agent_result = setup_agent_config(root, force=args.force)
+            if args.format == "json":
+                print(json.dumps(agent_result.to_dict(), ensure_ascii=False, indent=2))
+            else:
+                print(render_agent_setup_text(agent_result), end="")
+            return 0
+        if has_skill_md:
+            # SKILL.md project — full onboard + agent config
+            result = onboard_existing_skill(
+                args.path, name=args.name, version=args.version,
+                remote=args.remote, no_git=args.no_git, force=args.force,
+            )
+            agent_result = setup_agent_config(result.root, force=args.force)
+            result.created.extend(agent_result.created)
+            result.updated.extend(agent_result.updated)
+            result.skipped.extend(agent_result.skipped)
+            if args.format == "json":
+                print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+            else:
+                print(render_onboard_text(result), end="")
+            return 0 if result.ok else 1
+        # No skill.yaml or SKILL.md — agent config only
+        root.mkdir(parents=True, exist_ok=True)
+        agent_result = setup_agent_config(root, force=args.force)
+        if args.format == "json":
+            print(json.dumps(agent_result.to_dict(), ensure_ascii=False, indent=2))
+        else:
+            print(render_agent_setup_text(agent_result), end="")
+        return 0
+
+    # Standard onboard (requires SKILL.md)
     result = onboard_existing_skill(
-        args.path,
-        name=args.name,
-        version=args.version,
-        remote=args.remote,
-        no_git=args.no_git,
-        force=args.force,
+        args.path, name=args.name, version=args.version,
+        remote=args.remote, no_git=args.no_git, force=args.force,
     )
     if args.format == "json":
         print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
@@ -372,6 +408,7 @@ def _build_parser() -> argparse.ArgumentParser:
     onboard.add_argument("--remote", help="Optional GitHub remote URL to add as origin when missing")
     onboard.add_argument("--no-git", action="store_true", help="Do not initialize a Git repository")
     onboard.add_argument("--force", action="store_true", help="Overwrite generated SitHub onboarding files")
+    onboard.add_argument("--agent", action="store_true", help="Generate agent auto-discovery config (.mcp.json + AGENTS.md)")
     onboard.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
     onboard.set_defaults(func=cmd_onboard)
 
