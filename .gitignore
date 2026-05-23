@@ -7,7 +7,6 @@ __pycache__/
 .venv/
 dist/
 build/
-experiments/runs/
 
 # Node / VS Code extension
 node_modules/
@@ -16,3 +15,8 @@ node_modules/
 # macOS metadata
 ._*
 .DS_Store
+
+# Personal / local files
+*.code-workspace
+reports/
+OSS_HUB.md
