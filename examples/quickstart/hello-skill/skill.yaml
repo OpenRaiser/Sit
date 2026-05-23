@@ -1,0 +1,17 @@
+name: hello-skill
+version: 0.1.0
+status: active
+description: A minimal echo skill for learning sit.
+prompts:
+  system: prompts/system.md
+schemas:
+  input: schemas/input.schema.json
+  output: schemas/output.schema.json
+tests:
+  golden: tests/golden.jsonl
+runtime:
+  model: configurable
+  temperature: 0
+tags:
+  - example
+  - quickstart

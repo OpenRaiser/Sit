@@ -1,0 +1,2 @@
+{"case_id": "case-001", "input": {"name": "Alice"}, "expected": {"greeting": "Hello, Alice!"}, "match_mode": "schema_only"}
+{"case_id": "case-002", "input": {"name": "Bob"}, "expected": {"greeting": "Hello, Bob!"}, "match_mode": "schema_only"}
