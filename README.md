@@ -69,9 +69,25 @@ sit release minor . --bundle
 
 | Interface | Usage |
 |---|---|
+| **Auto-discovery** | `sit onboard --agent` — one-command setup for Claude Code, Cursor, etc. |
 | **Python SDK** | `from sit.sdk import Sit` — direct API calls |
 | **MCP Server** | `pip install 'sit-toolkit[mcp]'` — 7 tools over stdio |
 | **LLM Tool-Use** | `from sit.tool_use import get_tools_openai` — OpenAI & Anthropic schemas |
+
+<details>
+<summary>Agent auto-discovery</summary>
+
+```bash
+# Add agent config to an existing skill package
+sit onboard --agent ./my-skill
+
+# Or combine with full onboarding
+sit onboard --agent ./legacy-project
+```
+
+This generates `.mcp.json` (MCP server config) and `AGENTS.md` (agent rules)
+so your agent editor detects sit automatically. Restart your editor after running.
+</details>
 
 <details>
 <summary>Python SDK example</summary>
