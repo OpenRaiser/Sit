@@ -85,5 +85,8 @@
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
     "typescript": "^5.0.0"
+  },
+  "overrides": {
+    "qs": ">=6.15.2"
   }
 }
