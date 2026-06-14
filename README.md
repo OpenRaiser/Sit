@@ -44,7 +44,7 @@ Suggested version bump: minor
 Golden tests: pass
 ```
 
-The example above comes from a real package, `paper-webpage-builder`, where an agent-facing paper webpage Skill changed its output contract and expected behavior. `sit` turned the change into a reviewable PR signal instead of leaving reviewers to infer intent from raw diffs.
+The example above comes from a real package, [paper-webpage-builder](https://github.com/xxllovemkm/paper-webpage-builder), where an agent-facing paper webpage Skill changed its output contract and expected behavior. `sit` turned the change into a reviewable PR signal instead of leaving reviewers to infer intent from raw diffs.
 
 ![paper-webpage-builder case: Git sees lines, sit sees behavior](https://raw.githubusercontent.com/OpenRaiser/Sit/main/.github/assets/brand/sit-case-paper-webpage-builder-flat.png)
 
