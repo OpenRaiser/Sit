@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sit-toolkit"
-version = "0.22.0"
+version = "0.23.0"
 description = "Git-native CLI for versioning AI Skill packages: prompts, schemas, golden tests, and release artifacts."
 requires-python = ">=3.10"
 license = "Apache-2.0"
