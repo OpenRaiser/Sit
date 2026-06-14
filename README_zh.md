@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <strong>真实案例：</strong>查看 <a href="https://github.com/xxllovemkm/paper-webpage-builder">paper-webpage-builder</a> 如何用 Skill 风格组织 prompts、schemas、scripts 和 golden 行为检查。
+  <strong>真实案例：</strong>查看 <a href="https://github.com/OpenRaiser/paper-webpage-builder">paper-webpage-builder</a> 如何用 Skill 风格组织 prompts、schemas、scripts 和 golden 行为检查。
 </p>
 
 **给会修改 prompt、schema、脚本和 Skill 包的 AI agent 准备的 Git 原生安全层。**
@@ -59,7 +59,7 @@ Suggested version bump: minor
 Golden tests: pass
 ```
 
-上面的例子来自真实包 [paper-webpage-builder](https://github.com/xxllovemkm/paper-webpage-builder)：一个面向 agent 的论文网页生成 Skill 修改了输出契约和预期行为。`sit` 把这次变更转成可审查的 PR 信号，而不是让 reviewer 从原始 diff 里猜意图。
+上面的例子来自真实包 [paper-webpage-builder](https://github.com/OpenRaiser/paper-webpage-builder)：一个面向 agent 的论文网页生成 Skill 修改了输出契约和预期行为。`sit` 把这次变更转成可审查的 PR 信号，而不是让 reviewer 从原始 diff 里猜意图。
 
 ![paper-webpage-builder 案例：Git 看到行，sit 看到行为](https://raw.githubusercontent.com/OpenRaiser/Sit/main/.github/assets/brand/sit-case-paper-webpage-builder-flat.png)
 
